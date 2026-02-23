@@ -25,11 +25,10 @@ jobs:
               run: |
                   docker build --provenance=false -t asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest .
 
-            - name: Deploy to Compute Engine via SSH
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                  host: ${{ secrets.GCE_HOST }}
-                  username: ${{ secrets.GCE_SSH_USER}}
-                  key: ${{ secrets.GCE_SSH_KEY }}
-                  script: |
-                      docker service update --image asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest --with-registry-auth --force todo_stack_todo-backend
+            - name: Deploy to Compute Engine via gcloud
+              run: |
+                  gcloud compute ssh todo-swarm-manager \
+                      --zone=asia-southeast1-a \
+                      --project=voltarocks-42-sandbox \
+                      --tunnel-through-iap \
+                      --command="docker service update --image asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest --with-registry-auth --force todo_stack_todo-backend"
