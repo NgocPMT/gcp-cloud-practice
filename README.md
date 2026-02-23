@@ -9,13 +9,14 @@ This project is an example application for practicing Google Cloud Platform (GCP
 - **Persistence**: Supports both SQLite and MySQL backends.
 - **Dockerized**: Fully containerized for local development and production.
 - **GCP Integration**: Automated build, push, and deployment to GCP using GitHub Actions.
+- **Docker Swarm Orchestration**: Uses Docker Swarm on the Compute Engine VM to orchestrate containers in production.
 
 ## Tech Stack
 
 - **Backend**: Node.js (Express)
 - **Frontend**: React, React-Bootstrap
 - **Database**: SQLite (default) or MySQL (via Docker Compose)
-- **Containerization**: Docker, Docker Compose
+- **Containerization**: Docker, Docker Compose, Docker Swarm
 - **CI/CD**: GitHub Actions
 - **Cloud**: GCP Artifact Registry, Compute Engine
 
@@ -83,13 +84,13 @@ src/
 
 ## Deployment Workflow (GCP)
 
-Deployment is automated via GitHub Actions:
+Deployment is automated via GitHub Actions and Docker Swarm:
 
 - On push to `main`, the workflow:
     1. Authenticates to GCP
     2. Configures Docker for Artifact Registry
     3. Builds and pushes the Docker image to Artifact Registry
-    4. Deploys the image to Compute Engine VM via SSH
+    4. Deploys the image to Compute Engine VM via SSH, updating the running service in Docker Swarm with the new image
 
 See `.github/workflows/deploy.yml` for details.
 
@@ -109,6 +110,7 @@ MIT
 - GCP Artifact Registry
 - Compute Engine deployment
 - Docker image automation
+- Docker Swarm orchestration
 - GitHub Actions CI/CD
 
 ---
