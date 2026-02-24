@@ -24,6 +24,7 @@ jobs:
             - name: Build and Push Docker image
               run: |
                   docker build --provenance=false -t asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest .
+                  docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
 
             - name: Deploy to Compute Engine via gcloud
               run: |
