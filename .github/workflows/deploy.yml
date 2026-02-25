@@ -28,8 +28,8 @@ jobs:
 
             - name: Deploy to Compute Engine via gcloud
               run: |
-                  gcloud compute ssh todo-swarm-manager \
+                  gcloud compute ssh todo-swarm-manager-iac-e008c5a \
                       --zone=asia-southeast1-a \
                       --project=voltarocks-42-sandbox \
                       --tunnel-through-iap \
-                      --command="sudo docker service update --image asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest --with-registry-auth --force todo_stack_todo-backend"
+                      --command="sudo docker service inspect todo-backend >/dev/null 2>&1 && sudo docker service update --image asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest --with-registry-auth --force todo_stack_todo-backend || sudo docker service create --name todo-backend --publish published=3000,target=3000 --with-registry-auth asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest"
