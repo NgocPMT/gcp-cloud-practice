@@ -4,6 +4,11 @@ on:
     push:
         branches:
             - main
+        paths-ignore:
+            - 'sst.config.ts'
+            - '.sst/**'
+            - 'README.md'
+            - '.gitignore'
 
 jobs:
     build-and-deploy:
