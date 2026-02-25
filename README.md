@@ -25,7 +25,12 @@ This project is an example application for practicing Google Cloud Platform (GCP
 ```
 docker-compose.yml
 Dockerfile
+.dockerignore
+.gitignore
 package.json
+sst.config.ts
+sst-env.d.ts
+tsconfig.json
 src/
   index.js
   persistence/
@@ -113,6 +118,17 @@ Deployment is automated via GitHub Actions and Docker Swarm:
 
 See `.github/workflows/deploy.yml` for details.
 
+## IAM Access Matrix
+
+| Identity                                | Target Resource            | Required IAM Role             | Description                                                                                                                                                   |
+| :-------------------------------------- | :------------------------- | :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1. GitHub Actions SA**<br>_(Builder)_ | Artifact Registry          | `Artifact Registry Writer`    | Needs permission to upload new Docker images after compiling your TypeScript code.                                                                            |
+|                                         | Compute Engine VM          | `Compute Instance Admin (v1)` | Needs permission to query the VM's status and network tags to find it.                                                                                        |
+|                                         | IAP (Identity-Aware Proxy) | `IAP-secured Tunnel User`     | Needs permission to securely tunnel through Google's firewall to reach port 22 (SSH).                                                                         |
+|                                         | VM's Service Account       | `Service Account User`        | _Crucial:_ Because the VM wears an ID badge, GitHub Actions needs permission to "impersonate" or interact with that specific badge to run commands on the VM. |
+| **2. GCE VM Custom SA**<br>_(Runtime)_  | Artifact Registry          | `Artifact Registry Reader`    | The VM only needs to _download_ images to run them in Docker Swarm. It should never be allowed to upload/overwrite images.                                    |
+|                                         | Cloud Logging              | `Logs Writer`                 | The VM needs permission to stream its internal Docker logs out to the GCP Console.                                                                            |
+
 ## Environment Variables
 
 -   `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DB`: Used for MySQL configuration in Docker Compose.
@@ -132,6 +148,7 @@ MIT
 -   Docker Swarm orchestration
 -   GitHub Actions CI/CD
 -   Infrastructure as Code (SST)
+-   Least-privileges IAM Roles Design
 
 ---
 
