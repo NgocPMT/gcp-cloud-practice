@@ -51,6 +51,7 @@ jobs:
                         sudo docker service create \
                         --name todo-backend \
                         --publish published=3000,target=3000 \
+                        --log-driver=gcplogs \
                         --env MYSQL_HOST='${{ secrets.MYSQL_HOST }}' \
                         --env MYSQL_USER='${{ secrets.MYSQL_USER }}' \
                         --env MYSQL_PASSWORD='${{ secrets.MYSQL_PASSWORD }}' \
