@@ -3,23 +3,36 @@ services:
         image: oven/bun:1-alpine
         command: sh -c "bun install && bun run dev"
         ports:
-            - 3000:3000
+            - '3000:3000'
         working_dir: /app
         volumes:
             - ./:/app
+            - /app/node_modules # Protects the container's dependencies from the host machine
         environment:
             MYSQL_HOST: mysql
-            MYSQL_USER: root
+            MYSQL_USER: todo_admin
             MYSQL_PASSWORD: secret
-            MYSQL_DB: todos
+            MYSQL_DB: todos_db
+        depends_on:
+            mysql:
+                condition: service_healthy # THE FIX: Waits for the database to be fully booted
 
     mysql:
         image: mysql:8.0
+        ports:
+            - '3306:3306'
         volumes:
             - todo-mysql-data:/var/lib/mysql
         environment:
-            MYSQL_ROOT_PASSWORD: secret
-            MYSQL_DATABASE: todos
+            MYSQL_ROOT_PASSWORD: rootsecret
+            MYSQL_DATABASE: todos_db
+            MYSQL_USER: todo_admin
+            MYSQL_PASSWORD: secret
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+            interval: 5s
+            timeout: 10s
+            retries: 5
 
 volumes:
     todo-mysql-data:
