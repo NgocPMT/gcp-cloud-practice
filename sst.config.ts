@@ -46,7 +46,7 @@ export default $config({
                 },
             ],
             serviceAccount: {
-                email: '985227244631-compute@developer.gserviceaccount.com',
+                email: 'todo-vm-runtime@voltarocks-42-sandbox.iam.gserviceaccount.com',
                 scopes: ['https://www.googleapis.com/auth/cloud-platform'],
             },
             metadataStartupScript: `
