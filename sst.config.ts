@@ -17,15 +17,29 @@ export default $config({
         };
     },
     async run() {
-        const firewall = new gcp.compute.Firewall('todo-vm-firewall', {
+        // Open port 3000 so everyone can view the application running
+        const webFirewall = new gcp.compute.Firewall('allow-todo-web', {
             network: 'default',
             allows: [
                 {
                     protocol: 'tcp',
-                    ports: ['80', '3000'],
+                    ports: ['3000'],
                 },
             ],
             sourceRanges: ['0.0.0.0/0'],
+            targetTags: ['todo-iac-vm'],
+        });
+
+        // Restrict port 22 so only Google's internal proxy servers can SSH to the VM
+        const iapFirewall = new gcp.compute.Firewall('allow-ssh-from-iap', {
+            network: 'default',
+            allows: [
+                {
+                    protocol: 'tcp',
+                    ports: ['22'],
+                },
+            ],
+            sourceRanges: ['35.235.240.0/20'],
             targetTags: ['todo-iac-vm'],
         });
 
