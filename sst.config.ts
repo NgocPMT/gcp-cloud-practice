@@ -43,6 +43,55 @@ export default $config({
             targetTags: ['todo-iac-vm'],
         });
 
+        const privateIpBlock = new gcp.compute.GlobalAddress(
+            'private-ip-block',
+            {
+                purpose: 'VPC_PEERING',
+                addressType: 'INTERNAL',
+                prefixLength: 24,
+                network:
+                    'projects/voltarocks-42-sandbox/global/networks/default',
+            },
+        );
+
+        const privateVpcConnection = new gcp.servicenetworking.Connection(
+            'private-vpc-connection',
+            {
+                network:
+                    'projects/voltarocks-42-sandbox/global/networks/default',
+                service: 'servicenetworking.googleapis.com',
+                reservedPeeringRanges: [privateIpBlock.name],
+            },
+        );
+
+        const sqlInstance = new gcp.sql.DatabaseInstance(
+            'todo-mysql-instance',
+            {
+                databaseVersion: 'MYSQL_8_0',
+                region: 'asia-southeast1',
+                settings: {
+                    tier: 'db-f1-micro',
+                    ipConfiguration: {
+                        ipv4Enabled: false,
+                        privateNetwork:
+                            'projects/voltarocks-42-sandbox/global/networks/default',
+                    },
+                },
+            },
+            { dependsOn: [privateVpcConnection] },
+        );
+
+        const todoDb = new gcp.sql.Database('todo-db', {
+            instance: sqlInstance.name,
+            name: 'todos_db',
+        });
+
+        const todoDbUser = new gcp.sql.User('todo-db-user', {
+            instance: sqlInstance.name,
+            name: 'todo_admin',
+            password: 'super-super-secret-password', // Hardcode for dev demo, VERY BAD for production
+        });
+
         const vm = new gcp.compute.Instance('todo-swarm-manager-iac', {
             machineType: 'e2-micro',
             zone: 'asia-southeast1-a',
@@ -80,6 +129,7 @@ export default $config({
 
         return {
             vmExternalIp: vm.networkInterfaces[0].accessConfigs[0].natIp,
+            databasePrivateIp: sqlInstance.privateIpAddress,
         };
     },
 });
