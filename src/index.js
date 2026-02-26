@@ -58,7 +58,12 @@ db.init()
             `Fatal error during database initialization. Shutting down.`,
             { error: err.message, stack: err.stack },
         );
-        process.exit(1);
+
+        logger.on('finish', () => {
+            process.exit(1);
+        });
+
+        logger.end();
     });
 
 // Trace the Graceful Shutdown Sequence
