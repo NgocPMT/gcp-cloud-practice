@@ -77,6 +77,7 @@ export default $config({
                             'projects/voltarocks-42-sandbox/global/networks/default',
                     },
                 },
+                deletionProtection: false,
             },
             { dependsOn: [privateVpcConnection] },
         );
