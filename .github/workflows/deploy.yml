@@ -31,31 +31,32 @@ jobs:
                   docker build --provenance=false -t asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest .
                   docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
 
+            - name: Discover VM name
+              run: |
+                  # Search for the VM with the tag 'todo-iac-vm' and extract only its name
+                  DYNAMIC_NAME=$(gcloud compute instances list \
+                    --project=voltarocks-42-sandbox \
+                    --filter="tags.items=todo-iac-vm" \
+                    --format="value(name)" \
+                    --limit=1)
+
+                  echo "Found VM: $DYNAMIC_NAME"
+                  # Save it to the GitHub Environment so the next steps can use it
+                  echo "VM_NAME=$DYNAMIC_NAME" >> $GITHUB_ENV
+
             - name: Deploy to Compute Engine via gcloud
               run: |
-                  gcloud compute ssh todo-swarm-manager-iac-e008c5a \
-                    --zone=asia-southeast1-a \
-                    --project=voltarocks-42-sandbox \
-                    --tunnel-through-iap \
-                    --command="gcloud auth print-access-token --quiet | sudo docker login -u oauth2accesstoken --password-stdin https://asia-southeast1-docker.pkg.dev && \
-                    if sudo docker service inspect todo-backend >/dev/null 2>&1; then \
-                        sudo docker service update \
-                        --image asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest \
-                        --env-add MYSQL_HOST='${{ secrets.MYSQL_HOST }}' \
-                        --env-add MYSQL_USER='${{ secrets.MYSQL_USER }}' \
-                        --env-add MYSQL_PASSWORD='${{ secrets.MYSQL_PASSWORD }}' \
-                        --env-add MYSQL_DB='${{ secrets.MYSQL_DB }}' \
-                        --with-registry-auth \
-                        --force todo-backend; \
-                    else \
-                        sudo docker service create \
-                        --name todo-backend \
-                        --publish published=3000,target=3000 \
-                        --log-driver=gcplogs \
-                        --env MYSQL_HOST='${{ secrets.MYSQL_HOST }}' \
-                        --env MYSQL_USER='${{ secrets.MYSQL_USER }}' \
-                        --env MYSQL_PASSWORD='${{ secrets.MYSQL_PASSWORD }}' \
-                        --env MYSQL_DB='${{ secrets.MYSQL_DB }}' \
-                        --with-registry-auth \
-                        asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest; \
-                    fi"
+                  gcloud compute scp docker-compose.prod.yml $VM_NAME:~ \
+                  --zone=asia-southeast1-a \
+                  --project=voltarocks-42-sandbox \
+                  --tunnel-through-iap
+
+                  gcloud compute ssh $VM_NAME \
+                  --zone=asia-southeast1-a \
+                  --project=voltarocks-42-sandbox \
+                  --tunnel-through-iap \
+                  --command="gcloud auth print-access-token --quiet | sudo docker login -u oauth2accesstoken --password-stdin https://asia-southeast1-docker.pkg.dev && \
+                  sudo POSTGRES_USER='${{  secrets.POSTGRES_USER  }}'' \
+                       POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+                       POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
+                       docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"

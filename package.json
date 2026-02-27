@@ -11,8 +11,7 @@
   "dependencies": {
     "@google-cloud/logging-winston": "^6.0.1",
     "express": "^4.18.2",
-    "mysql2": "^2.3.3",
-    "sqlite3": "^5.1.2",
+    "pg": "^8.19.0",
     "sst": "4.0.2",
     "uuid": "^9.0.0",
     "wait-port": "^1.0.4",
