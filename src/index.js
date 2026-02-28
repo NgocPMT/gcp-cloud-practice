@@ -6,12 +6,15 @@ const addItem = require('./routes/addItem');
 const updateItem = require('./routes/updateItem');
 const deleteItem = require('./routes/deleteItem');
 const { logger } = require('./utils/logger');
+const client = require('prom-client');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 
 app.use(express.json());
 app.use(express.static(__dirname + '/static'));
+
+client.collectDefaultMetrics();
 
 // This logs every single incoming request and how long it took to respond
 app.use((req, res, next) => {
@@ -39,6 +42,11 @@ app.use((req, res, next) => {
         }
     });
     next();
+});
+
+app.get('/metrics', async (req, res) => {
+    res.set('Content-type', client.register.contentType);
+    res.end(await client.register.metrics());
 });
 
 app.get('/items', getItems);

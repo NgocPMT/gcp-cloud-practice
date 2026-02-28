@@ -27,8 +27,30 @@ services:
         networks:
             - todo-internal
 
+    prometheus:
+        image: prom/prometheus:latest
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml
+            - prom_data:/prometheus
+        networks:
+            - todo-internal
+
+    grafana:
+        image: grafana/grafana:latest
+        ports:
+            - '127.0.0.1:3001:3000'
+        environment: GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+        volumes:
+            - grafana_data: /var/lib/grafana
+        networks:
+            - todo-internal
+        depends_on:
+            - prometheus
+
 volumes:
     pgdata:
+    prom_data:
+    grafana_data:
 
 networks:
     todo-internal:

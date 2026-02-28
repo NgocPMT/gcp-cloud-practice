@@ -46,7 +46,7 @@ jobs:
 
             - name: Deploy to Compute Engine via gcloud
               run: |
-                  gcloud compute scp docker-compose.prod.yml $VM_NAME:~ \
+                  gcloud compute scp docker-compose.prod.yml prometheus.yml $VM_NAME:~ \
                   --zone=asia-southeast1-a \
                   --project=voltarocks-42-sandbox \
                   --tunnel-through-iap
