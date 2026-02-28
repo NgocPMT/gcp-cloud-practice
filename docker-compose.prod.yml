@@ -39,9 +39,10 @@ services:
         image: grafana/grafana:latest
         ports:
             - '127.0.0.1:3001:3000'
-        environment: GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+        environment:
+            GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
         volumes:
-            - grafana_data: /var/lib/grafana
+            - grafana_data:/var/lib/grafana
         networks:
             - todo-internal
         depends_on:
