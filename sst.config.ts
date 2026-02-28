@@ -52,7 +52,7 @@ export default $config({
                     image: 'ubuntu-minimal-2404-noble-amd64-v20260219',
                 },
             },
-            tags: ['http-server', 'todo-iac-vm'],
+            tags: ['http-server', 'https-server', 'todo-iac-vm'],
             networkInterfaces: [
                 {
                     network: 'default',

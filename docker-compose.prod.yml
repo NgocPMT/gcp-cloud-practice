@@ -1,11 +1,35 @@
 version: '3.8'
 
 services:
+    nginx-proxy:
+        image: nginxproxy/nginx-proxy
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - '/var/run/docker.sock:/tmp/docker.sock:ro'
+            - certs:/etc/nginx/certs
+            - vhost:/etc/nginx/vhost.d
+            - html:/usr/share/nginx/html
+        networks:
+            - todo-internal
+
+    self-companion:
+        image: nginxproxy/acme-companion
+        volumes_from:
+            - nginx-proxy
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - acme:/etc/acme.sh
+        environment:
+            - DEFAULT_EMAIL=nathan.pham1505@gmail.com
+        networks:
+            - todo-internal
     api:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
-        ports:
-            - '80:3000'
         environment:
+            VIRTUAL_HOST: ngocpmt-todo-app.duckdns.org
+            LETSENCRYPT_HOST: ngocpmt-todo-app.duckdns.org
             POSTGRES_HOST: db
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -52,7 +76,12 @@ volumes:
     pgdata:
     prom_data:
     grafana_data:
+    certs:
+    vhost:
+    html:
+    acme:
 
 networks:
     todo-internal:
         driver: overlay
+        attachable: true
