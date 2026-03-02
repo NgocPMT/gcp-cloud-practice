@@ -1,22 +1,26 @@
-# Todo App GCP Docker Practice
+# Todo App GCP Docker & SST Practice
 
-This project is an example application for practicing Google Cloud Platform (GCP) deployments using Docker and GitHub Actions. The app demonstrates how to build a Docker image, push it to GCP Artifact Registry, and deploy it to a Compute Engine VM, with the entire process automated via GitHub Actions.
+This project is a practical example for deploying a Todo application on Google Cloud Platform (GCP) using Docker, Docker Swarm, and Infrastructure as Code (IaC) with SST. It demonstrates building and pushing Docker images to Artifact Registry, provisioning infrastructure with SST, and orchestrating containers on Compute Engine VMs using Docker Swarm. The entire process is automated via GitHub Actions.
 
 ## Features
 
--   **Todo List API**: A simple RESTful API for managing todo items (add, update, delete, list).
+-   **Todo List API**: RESTful API for managing todo items (add, update, delete, list).
 -   **Frontend**: React-based UI served via Express static files.
--   **Persistence**: Supports both SQLite and MySQL backends.
+-   **Persistence**: Supports SQLite, MySQL, and PostgreSQL backends.
+-   **Monitoring**: Prometheus configuration included for metrics collection.
 -   **Dockerized**: Fully containerized for local development and production.
+-   **Docker Swarm Orchestration**: Uses Docker Swarm on Compute Engine VM for container orchestration.
+-   **IaC with SST**: Infrastructure is provisioned and managed automatically using SST.
 -   **GCP Integration**: Automated build, push, and deployment to GCP using GitHub Actions.
--   **Docker Swarm Orchestration**: Uses Docker Swarm on the Compute Engine VM to orchestrate containers in production.
 
 ## Tech Stack
 
 -   **Backend**: Node.js (Express)
 -   **Frontend**: React, React-Bootstrap
--   **Database**: SQLite (default) or MySQL (via Docker Compose)
+-   **Database**: SQLite (default), MySQL, PostgreSQL
 -   **Containerization**: Docker, Docker Compose, Docker Swarm
+-   **Monitoring**: Prometheus
+-   **IaC**: SST (TypeScript)
 -   **CI/CD**: GitHub Actions
 -   **Cloud**: GCP Artifact Registry, Compute Engine
 
@@ -37,6 +41,7 @@ src/
     index.js
     mysql.js
     sqlite.js
+    postgres.js
   routes/
     addItem.js
     deleteItem.js
@@ -56,6 +61,17 @@ src/
       react-bootstrap.js
       react-dom.production.min.js
       react.production.min.js
+utils/
+  index.js
+  logger.js
+Dockerfile
+package.json
+sst.config.ts           # SST infrastructure config
+sst-env.d.ts            # SST environment typings
+prometheus.yml          # Prometheus config
+.gitignore
+bun.lock
+tsconfig.json
 ```
 
 ## Local Development
@@ -63,27 +79,24 @@ src/
 ### Prerequisites
 
 -   Docker & Docker Compose
--   Node.js (for local runs)
--   Bun (package manager)
+-   Node.js & Bun (for local runs)
 
 ### Running Locally
 
-1. **With Docker Compose (MySQL):**
+1. **With Docker Compose (MySQL/Postgres):**
 
     ```bash
     docker-compose up -d
     ```
 
     - App runs on [http://localhost:3000](http://localhost:3000)
-    - MySQL is used as backend
+    - MySQL or PostgreSQL is used as backend
 
 2. **Without Docker (SQLite):**
-
     ```bash
     bun install
     bun run dev
     ```
-
     - App runs on [http://localhost:3000](http://localhost:3000)
     - SQLite is used as backend
 
@@ -159,8 +172,9 @@ Because this is a public-facing Todo application, we must allow standard web tra
 
 ## Environment Variables
 
--   `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DB`: Used for MySQL configuration in Docker Compose.
--   `SQLITE_DB_LOCATION`: Optional, sets SQLite DB file location.
+-   `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DB`: MySQL configuration
+-   `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`: PostgreSQL configuration
+-   `SQLITE_DB_LOCATION`: Optional, sets SQLite DB file location
 
 ## License
 
@@ -177,6 +191,7 @@ MIT
 -   GitHub Actions CI/CD
 -   Infrastructure as Code (SST)
 -   Least-privileges IAM Roles Design
+-   Monitoring with Prometheus
 
 ---
 
