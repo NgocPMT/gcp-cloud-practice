@@ -108,7 +108,7 @@ export default $config({
         // Allow GitHub to talk to the VM and use the Runtime SA
         new gcp.projects.IAMMember('deployer-compute-perm', {
             project: gcp.config.project,
-            role: 'roles/compute.osAdminLogin',
+            role: 'roles/compute.instanceAdmin.v1',
             member: $interpolate`serviceAccount:${deployerSA.email}`,
         });
 

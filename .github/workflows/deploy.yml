@@ -48,6 +48,21 @@ jobs:
                   # Save it to the GitHub Environment so the next steps can use it
                   echo "VM_NAME=$DYNAMIC_NAME" >> $GITHUB_ENV
 
+            - name: Wait for Docker to be ready
+              run: |
+                  echo "Waiting for startup script to finish..."
+                  # This loop checks if docker is installed every 10 seconds, up to 10 times
+                  for i in {1..10}; do
+                    if gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap --command "which docker" > /dev/null 2>&1; then
+                      echo "Docker is ready!"
+                      exit 0
+                    fi
+                    echo "Docker not ready yet... sleeping 10s"
+                    sleep 10
+                  done
+                  echo "Timed out waiting for Docker"
+                  exit 1
+
             - name: Deploy to Compute Engine via gcloud
               run: |
                   gcloud compute scp docker-compose.prod.yml prometheus.yml $VM_NAME:~ \
