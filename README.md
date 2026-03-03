@@ -6,7 +6,7 @@ This project is a practical example for deploying a Todo application on Google C
 
 -   **Todo List API**: RESTful API for managing todo items (add, update, delete, list).
 -   **Frontend**: React-based UI served via Express static files.
--   **Persistence**: Supports SQLite, MySQL, and PostgreSQL backends.
+-   **Persistence**: PostgreSQL backends.
 -   **Monitoring**: Prometheus configuration included for metrics collection.
 -   **Reverse Proxy**: Traefik for HTTPS, routing, and automatic Let's Encrypt certificates.
 -   **Dockerized**: Fully containerized for local development and production.
@@ -18,7 +18,7 @@ This project is a practical example for deploying a Todo application on Google C
 
 -   **Backend**: Node.js (Express)
 -   **Frontend**: React, React-Bootstrap
--   **Database**: SQLite (default), MySQL, PostgreSQL
+-   **Database**: PostgreSQL
 -   **Containerization**: Docker, Docker Compose, Docker Swarm
 -   **Reverse Proxy**: Traefik
 -   **Monitoring**: Prometheus
