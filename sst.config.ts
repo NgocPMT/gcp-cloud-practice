@@ -53,7 +53,7 @@ export default $config({
         );
 
         const pool = new gcp.iam.WorkloadIdentityPool('github-pool', {
-            workloadIdentityPoolId: 'github-actions-pool',
+            workloadIdentityPoolId: 'github-actions-pool-v2',
         });
 
         const poolProvider = new gcp.iam.WorkloadIdentityPoolProvider(
@@ -181,7 +181,7 @@ export default $config({
                 #!/bin/bash
                 # Update packages and install dockers
                 sudo apt-get update
-                sudo apt-get install -y docker.io google-cloud-sdk
+                sudo apt-get install -y docker.io cron
 
                 # Start and enable Docker
                 sudo systemctl start docker
