@@ -4,7 +4,7 @@ services:
         command:
             - --providers.swarm=true
             - --providers.swarm.network=traefik-public
-            - --providers.docker.exposedByDefault=false
+            - --providers.swarm.exposedByDefault=false
             - --entrypoints.web.address=:80
             - --entrypoints.websecure.address=:443
             - --certificatesresolvers.letsencrypt.acme.email=nathan.pham1505@gmail.com
