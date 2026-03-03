@@ -73,6 +73,16 @@ export default $config({
                 sudo systemctl start docker
                 sudo systemctl enable docker
 
+                # Initialize Swarm (only if not already initialized)
+                if ! docker info | grep -q "Swarm: active"; then
+                docker swarm init
+                fi
+
+                # Create overlay network if it does not exist
+                if ! docker network ls --format '{{.Name}}' | grep -q "^traefik-public$"; then
+                docker network create -d overlay traefik-public
+                fi
+
                 # Initialize Docker Swarm
                 sudo docker swarm init
             `,
