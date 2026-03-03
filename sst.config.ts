@@ -17,7 +17,121 @@ export default $config({
         };
     },
     async run() {
-        // Open port 3000 so everyone can view the application running
+        // Registry for storing Docker images
+        const repository = new gcp.artifactregistry.Repository('todo-repo', {
+            format: 'DOCKER',
+            repositoryId: 'todo-repo',
+            location: 'asia-southeast1',
+            description: 'Docker repository for Todo App',
+        });
+
+        // Bucket for Postgres backup
+        const backupBucket = new gcp.storage.Bucket('todo-postgres-backups', {
+            location: 'ASIA-SOUTHEAST1',
+            uniformBucketLevelAccess: true,
+            lifecycleRules: [
+                {
+                    action: { type: 'Delete' },
+                    condition: { age: 30 }, // auto-delete after 30 days
+                },
+            ],
+        });
+
+        // VM Runtime Service Account
+        const runtimeSA = new gcp.serviceaccount.Account('vm-runtime-sa', {
+            accountId: 'todo-vm-runtime',
+            displayName: 'Service Account for Todo VM Runtime',
+        });
+
+        // Github Actions Service Account
+        const deployerSA = new gcp.serviceaccount.Account(
+            'github-deployer-sa',
+            {
+                accountId: 'todo-github-deployer',
+                displayName: 'Service Account for Github Actions CI/CD',
+            },
+        );
+
+        const pool = new gcp.iam.WorkloadIdentityPool('github-pool', {
+            workloadIdentityPoolId: 'github-actions-pool',
+        });
+
+        const poolProvider = new gcp.iam.WorkloadIdentityPoolProvider(
+            'github-provider',
+            {
+                workloadIdentityPoolId: pool.workloadIdentityPoolId,
+                workloadIdentityPoolProviderId: 'github-provider',
+                attributeMapping: {
+                    'google.subject': 'assertion.sub',
+                    'attribute.repository': 'assertion.repository',
+                },
+                attributeCondition:
+                    "assertion.repository == 'NgocPMT/gcp-cloud-practice'",
+                oidc: {
+                    issuerUri: 'https://token.actions.githubusercontent.com',
+                },
+            },
+        );
+
+        // Permissions for the RUNTIME (The VM)
+        // Pull images from the repo we just created
+        new gcp.artifactregistry.RepositoryIamMember('runtime-pull-perm', {
+            repository: repository.name,
+            location: repository.location,
+            role: 'roles/artifactregistry.reader',
+            member: $interpolate`serviceAccount:${runtimeSA.email}`,
+        });
+
+        // Write logs
+        new gcp.projects.IAMMember('runtime-log-perm', {
+            project: gcp.config.project,
+            role: 'roles/logging.logWriter',
+            member: $interpolate`serviceAccount:${runtimeSA.email}`,
+        });
+
+        // Write to Backup Bucket
+        new gcp.storage.BucketIAMMember('runtime-bucket-perm', {
+            bucket: backupBucket.name,
+            role: 'roles/storage.objectAdmin',
+            member: $interpolate`serviceAccount:${runtimeSA.email}`,
+        });
+
+        // Permissions for the DEPLOYER (GitHub Actions)
+        // Push images to Registry
+        new gcp.artifactregistry.RepositoryIamMember('deployer-push-perm', {
+            repository: repository.name,
+            location: repository.location,
+            role: 'roles/artifactregistry.writer',
+            member: $interpolate`serviceAccount:${deployerSA.email}`,
+        });
+
+        // Allow GitHub to talk to the VM and use the Runtime SA
+        new gcp.projects.IAMMember('deployer-compute-perm', {
+            project: gcp.config.project,
+            role: 'roles/compute.osAdminLogin',
+            member: $interpolate`serviceAccount:${deployerSA.email}`,
+        });
+
+        new gcp.projects.IAMMember('deployer-iap-perm', {
+            project: gcp.config.project,
+            role: 'roles/iap.tunnelResourceAccessor',
+            member: $interpolate`serviceAccount:${deployerSA.email}`,
+        });
+
+        // Allows GitHub to "act as" the runtime SA when deploying the VM
+        new gcp.serviceaccount.IAMMember('deployer-sa-user', {
+            serviceAccountId: runtimeSA.name,
+            role: 'roles/iam.serviceAccountUser',
+            member: $interpolate`serviceAccount:${deployerSA.email}`,
+        });
+
+        new gcp.serviceaccount.IAMMember('github-sa-binding', {
+            serviceAccountId: deployerSA.name,
+            role: 'roles/iam.workloadIdentityUser',
+            member: $interpolate`principalSet://iam.googleapis.com/${pool.name}/attribute.repository/NgocPMT/gcp-cloud-practice`,
+        });
+
+        // Open only port 80 (HTTP) and 443 (HTTPS)
         const webFirewall = new gcp.compute.Firewall('allow-todo-web', {
             network: 'default',
             allows: [
@@ -60,18 +174,21 @@ export default $config({
                 },
             ],
             serviceAccount: {
-                email: 'todo-vm-runtime@voltarocks-42-sandbox.iam.gserviceaccount.com',
+                email: runtimeSA.email,
                 scopes: ['https://www.googleapis.com/auth/cloud-platform'],
             },
-            metadataStartupScript: `
+            metadataStartupScript: $interpolate`
                 #!/bin/bash
                 # Update packages and install dockers
                 sudo apt-get update
-                sudo apt-get install -y docker.io
+                sudo apt-get install -y docker.io google-cloud-sdk
 
                 # Start and enable Docker
                 sudo systemctl start docker
                 sudo systemctl enable docker
+
+                # Configure docker credential helper for Artifact Registry
+                sudo gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
 
                 # Initialize Swarm (only if not already initialized)
                 if ! docker info | grep -q "Swarm: active"; then
@@ -83,13 +200,18 @@ export default $config({
                 docker network create -d overlay traefik-public
                 fi
 
-                # Initialize Docker Swarm
-                sudo docker swarm init
+                CRON_JOB='0 2 * * * docker run --rm --network todo-internal -e PGPASSWORD=secret postgres:15-alpine \
+                pg_basebackup -h db -U root -D - -Ft -z -P | gsutil cp - gs:${backupBucket.name}/base/base_$(date +\\%F).tar.gz'
+
+                # install the cron job if it's not already present
+                ( crontab -l 2>/dev/null | grep -F -- "$CRON_JOB" ) || ( crontab -l 2>/dev/null; echo "$CRON_JOB" ) | crontab -
             `,
         });
 
         return {
             vmExternalIp: vm.networkInterfaces[0].accessConfigs[0].natIp,
+            wifProvider: poolProvider.name,
+            deployerEmail: deployerSA.email,
         };
     },
 });

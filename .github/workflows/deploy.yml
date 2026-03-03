@@ -13,6 +13,9 @@ on:
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -20,7 +23,8 @@ jobs:
             - name: Authenticate to Google Cloud
               uses: google-github-actions/auth@v2
               with:
-                  credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+                  workload_identity_provider: 'projects/985227244631/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
+                  service_account: todo-github-deployer@voltarocks-42-sandbox.iam.gserviceaccount.com
 
             - name: Configure Docker for Artifact Registry
               run: |
@@ -55,8 +59,8 @@ jobs:
                   --zone=asia-southeast1-a \
                   --project=voltarocks-42-sandbox \
                   --tunnel-through-iap \
-                  --command="gcloud auth print-access-token --quiet | sudo docker login -u oauth2accesstoken --password-stdin https://asia-southeast1-docker.pkg.dev && \
-                  sudo POSTGRES_USER='${{  secrets.POSTGRES_USER  }}' \
+                  --command "sudo POSTGRES_USER='${{  secrets.POSTGRES_USER  }}' \
                        POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
                        POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
+                       GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
                        docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
