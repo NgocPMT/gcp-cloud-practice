@@ -13,7 +13,7 @@ services:
         ports:
             - target: 80
               published: 80
-              mode: host 
+              mode: host
             - target: 443
               published: 443
               mode: host
@@ -24,8 +24,8 @@ services:
             - traefik-public
         deploy:
             placement:
-              constraints:
-                - node.role == manager
+                constraints:
+                    - node.role == manager
     api:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
         environment:
@@ -41,11 +41,11 @@ services:
             update_config:
                 order: start-first
             labels:
-                - "traefik.enable=true"
-                - "traefik.http.routers.api.rule=Host(`ngocpmt-todo-app.duckdns.org`)"
-                - "traefik.http.routers.api.entrypoints=websecure"
-                - "traefik.http.routers.api.tls.certresolver=letsencrypt"
-                - "traefik.http.services.api.loadbalancer.server.port=3000"
+                - 'traefik.enable=true'
+                - 'traefik.http.routers.api.rule=Host(`ngocpmt-todo-app.duckdns.org`)'
+                - 'traefik.http.routers.api.entrypoints=websecure'
+                - 'traefik.http.routers.api.tls.certresolver=letsencrypt'
+                - 'traefik.http.services.api.loadbalancer.server.port=3000'
     db:
         image: postgres:15-alpine
         environment:
@@ -82,7 +82,7 @@ volumes:
     pgdata:
     prom_data:
     grafana_data:
-    traefik_letsencrypt
+    traefik_letsencrypt:
 
 networks:
     todo-internal:
