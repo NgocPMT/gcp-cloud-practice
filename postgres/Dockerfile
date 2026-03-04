@@ -3,7 +3,7 @@ FROM postgres:15-alpine
 RUN apk add --no-cache curl bash ca-certificates openrc tzdata busybox-suid
 
 # Install WAL-G
-RUN curl -L https://github.com/wal-g/wal-g/releases/latest/download/wal-g-pg-linux-amd64.tar.gz \
+RUN curl -L https://github.com/wal-g/wal-g/releases/download/v3.0.8/wal-g-pg-24.04-amd64.tar.gz \
     | tar -xz -C /usr/local/bin \
     && mv /usr/local/bin/wal-g-pg-linux-amd64 /usr/local/bin/wal-g \
     && chmod +x /usr/local/bin/wal-g
