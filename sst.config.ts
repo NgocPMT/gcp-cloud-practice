@@ -104,12 +104,6 @@ export default $config({
             member: $interpolate`serviceAccount:${deployerSA.email}`,
         });
 
-        new gcp.serviceaccount.IAMMember('github-sa-binding', {
-            serviceAccountId: deployerSA.name,
-            role: 'roles/iam.workloadIdentityUser',
-            member: $interpolate`principalSet://iam.googleapis.com/${pool.name}/attribute.repository/NgocPMT/gcp-cloud-practice`,
-        });
-
         // Open only port 80 (HTTP) and 443 (HTTPS)
         const webFirewall = new gcp.compute.Firewall('allow-todo-web', {
             network: 'default',
