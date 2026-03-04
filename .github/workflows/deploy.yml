@@ -53,11 +53,6 @@ jobs:
                   # Save it to the GitHub Environment so the next steps can use it
                   echo "VM_NAME=$DYNAMIC_NAME" >> $GITHUB_ENV
 
-            - name: Get SST outputs
-              run: |
-                  BUCKET=$(npx sst outputs --stage production --json | jq -r '.backupBucket')
-                  echo "BACKUP_BUCKET=$BUCKET" >> $GITHUB_ENV
-
             - name: Wait for Docker to be ready
               run: |
                   echo "Waiting for startup script to finish..."
@@ -88,5 +83,5 @@ jobs:
                        POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
                        POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
                        GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
-                       BACKUP_BUCKET='$BACKUP_BUCKET'
+                       BACKUP_BUCKET=${{ secrets.BACKUP_BUCKET }}
                        docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
