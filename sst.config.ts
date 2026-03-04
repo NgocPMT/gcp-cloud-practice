@@ -137,7 +137,7 @@ export default $config({
         });
 
         const vm = new gcp.compute.Instance('todo-swarm-manager-iac', {
-            machineType: 'e2-micro',
+            machineType: 'e2-small',
             zone: 'asia-southeast1-a',
             allowStoppingForUpdate: true,
             bootDisk: {
@@ -183,6 +183,7 @@ export default $config({
 
         return {
             vmExternalIp: vm.networkInterfaces[0].accessConfigs[0].natIp,
+            backupBucket: backupBucket.name,
         };
     },
 });
