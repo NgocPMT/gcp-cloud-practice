@@ -177,8 +177,6 @@ export default $config({
 
         return {
             vmExternalIp: vm.networkInterfaces[0].accessConfigs[0].natIp,
-            wifProvider: poolProvider.name,
-            deployerEmail: deployerSA.email,
         };
     },
 });
