@@ -83,5 +83,5 @@ jobs:
                        POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
                        POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
                        GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
-                       BACKUP_BUCKET=${{ secrets.BACKUP_BUCKET }}
+                       BACKUP_BUCKET='${{ secrets.BACKUP_BUCKET }}' \
                        docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
