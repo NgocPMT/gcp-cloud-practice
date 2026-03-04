@@ -48,19 +48,48 @@ services:
                 - 'traefik.http.services.api.loadbalancer.server.port=3000'
     db:
         image: postgres:15-alpine
-        command: >
-            postgres
-            -c wal_level=replica
-            -c archive_mode=on
-            -c archive_timeout=60
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
+
+            WALG_GS_PREFIX: gs://todo-postgres-backups
+            WALG_COMPRESSION_METHOD: brotli
         volumes:
             - pgdata:/var/lib/postgresql/data
         networks:
             - todo-internal
+        command: >
+            postgres
+            -c wal_level=replica
+            -c archive_mode=on
+            -c archive_command='wal-g wal-push %p'
+            -c restore_command='wal-g wal-fetch %f %p'
+
+    backup:
+        image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
+        environment:
+            WALG_GS_PREFIX: gs://todo-postgres-backups
+            WALG_COMPRESSION_METHOD: brotli
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        networks:
+            - todo-internal
+        deploy:
+            replicas: 1
+            placement:
+                constraints:
+                    - node.role == manager
+        command: >
+            sh -c "
+                while true; do
+                    echo 'Starting base backup';
+                    wal-g backup-push /var/lib/postgresql/data;
+                    wal-g delete retain 7 --confirm;
+                    echo 'Sleeping 24h';
+                    sleep 86400;
+                done
+            "
 
     prometheus:
         image: prom/prometheus:latest

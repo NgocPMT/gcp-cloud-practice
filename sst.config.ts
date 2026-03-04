@@ -52,27 +52,6 @@ export default $config({
             },
         );
 
-        const pool = new gcp.iam.WorkloadIdentityPool('github-pool', {
-            workloadIdentityPoolId: 'github-actions-pool-v2',
-        });
-
-        const poolProvider = new gcp.iam.WorkloadIdentityPoolProvider(
-            'github-provider',
-            {
-                workloadIdentityPoolId: pool.workloadIdentityPoolId,
-                workloadIdentityPoolProviderId: 'github-provider',
-                attributeMapping: {
-                    'google.subject': 'assertion.sub',
-                    'attribute.repository': 'assertion.repository',
-                },
-                attributeCondition:
-                    "assertion.repository == 'NgocPMT/gcp-cloud-practice'",
-                oidc: {
-                    issuerUri: 'https://token.actions.githubusercontent.com',
-                },
-            },
-        );
-
         // Permissions for the RUNTIME (The VM)
         // Pull images from the repo we just created
         new gcp.artifactregistry.RepositoryIamMember('runtime-pull-perm', {
@@ -199,12 +178,6 @@ export default $config({
                 if ! docker network ls --format '{{.Name}}' | grep -q "^traefik-public$"; then
                 docker network create -d overlay traefik-public
                 fi
-
-                CRON_JOB='0 2 * * * docker run --rm --network todo-internal -e PGPASSWORD=secret postgres:15-alpine \
-                pg_basebackup -h db -U root -D - -Ft -z -P | gsutil cp - gs:${backupBucket.name}/base/base_$(date +\\%F).tar.gz'
-
-                # install the cron job if it's not already present
-                ( crontab -l 2>/dev/null | grep -F -- "$CRON_JOB" ) || ( crontab -l 2>/dev/null; echo "$CRON_JOB" ) | crontab -
             `,
         });
 
