@@ -3,9 +3,11 @@ FROM postgres:15-alpine
 RUN apk add --no-cache curl bash ca-certificates openrc tzdata busybox-suid
 
 # Install WAL-G
-RUN curl -L https://github.com/wal-g/wal-g/releases/download/v3.0.8/wal-g-pg-24.04-amd64.tar.gz \
-    | tar -xz -C /usr/local/bin \
-    && mv /usr/local/bin/wal-g-pg-linux-amd64 /usr/local/bin/wal-g \
+RUN curl -fSL https://github.com/wal-g/wal-g/releases/download/v3.0.8/wal-g-pg-24.04-amd64.tar.gz \
+    -o /tmp/wal-g.tar.gz \
+    && tar -xzvf /tmp/wal-g.tar.gz -C /usr/local/bin \
+    && rm /tmp/wal-g.tar.gz \
+    && find /usr/local/bin -type f -name "wal-g*" -exec mv {} /usr/local/bin/wal-g \; \
     && chmod +x /usr/local/bin/wal-g
 
 # Add a cron script that runs backup daily at 02:00
