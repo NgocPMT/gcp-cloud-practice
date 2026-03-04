@@ -47,7 +47,7 @@ services:
                 - 'traefik.http.routers.api.tls.certresolver=letsencrypt'
                 - 'traefik.http.services.api.loadbalancer.server.port=3000'
     db:
-        image: postgres:15-alpine
+        image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
