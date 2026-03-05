@@ -43,7 +43,7 @@ jobs:
 
             - name: Build and Push Docker image
               run: |
-                  encore build docker todo-app
+                  /home/runner/.encore/bin/encore build docker todo-app
                   docker tag todo-app asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
                   docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
 
