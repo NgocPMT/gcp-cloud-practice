@@ -16,60 +16,32 @@ const TodoService = {
         try {
             return await TodoRepository.getItems();
         } catch (err) {
-            if (err instanceof Error) {
-                log.error(
-                    'Something went wrong when getting items from the database',
-                    { error: err.stack },
-                );
-                throw APIError.internal(
-                    'Something went wrong when getting items, please try again later.',
-                );
-            }
+            log.error('Operation failed', { error: String(err) });
+            throw APIError.internal('Database operation failed');
         }
     },
     create: async (input: CreateInput) => {
         try {
             return await TodoRepository.createItem(input);
         } catch (err) {
-            if (err instanceof Error) {
-                log.error(
-                    'Something went wrong when inserting new to-do item to the database',
-                    { error: err.stack },
-                );
-                throw APIError.internal(
-                    'Something went wrong when creating item, please try again later.',
-                );
-            }
+            log.error('Operation failed', { error: String(err) });
+            throw APIError.internal('Database operation failed');
         }
     },
     update: async (id: string, input: UpdateInput) => {
         try {
             return await TodoRepository.updateItem(id, input);
         } catch (err) {
-            if (err instanceof Error) {
-                log.error(
-                    'Something went wrong when updating to-do item from database',
-                    { error: err.stack },
-                );
-                throw APIError.internal(
-                    'Something went wrong when updating item, please try again later.',
-                );
-            }
+            log.error('Operation failed', { error: String(err) });
+            throw APIError.internal('Database operation failed');
         }
     },
     delete: async (id: string) => {
         try {
             return await TodoRepository.deleteItem(id);
         } catch (err) {
-            if (err instanceof Error) {
-                log.error(
-                    'Something went wrong when deleting to-do item from database',
-                    { error: err.stack },
-                );
-                throw APIError.internal(
-                    'Something went wrong when deleting item, please try again later.',
-                );
-            }
+            log.error('Operation failed', { error: String(err) });
+            throw APIError.internal('Database operation failed');
         }
     },
 };
