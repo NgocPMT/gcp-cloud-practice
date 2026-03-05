@@ -8,6 +8,14 @@ interface Todo {
     createdAt: Date;
 }
 
+interface ListResponse {
+    items: Todo[];
+}
+
+interface ItemResponse {
+    item: Todo;
+}
+
 export const root = api(
     { method: 'GET', path: '/', expose: true },
     async (): Promise<{ message: string }> => {
@@ -20,8 +28,9 @@ export const root = api(
 
 export const getAll = api(
     { method: 'GET', path: '/items', expose: true },
-    async (): Promise<Todo[]> => {
-        return await TodoService.getAll();
+    async (): Promise<ListResponse> => {
+        const items = await TodoService.getAll();
+        return { items: items ?? [] }; // Wrap array in the named interface
     },
 );
 
@@ -31,8 +40,9 @@ interface CreateRequest {
 
 export const create = api(
     { method: 'POST', path: '/items', expose: true },
-    async (req: CreateRequest): Promise<Todo> => {
-        return await TodoService.create(req);
+    async (req: CreateRequest): Promise<ItemResponse> => {
+        const item = await TodoService.create(req);
+        return { item };
     },
 );
 
@@ -49,14 +59,16 @@ export const update = api(
     }: {
         id: string;
         body: UpdateRequest;
-    }): Promise<Todo> => {
-        return await TodoService.update(id, body);
+    }): Promise<ItemResponse> => {
+        const item = await TodoService.update(id, body);
+        return { item };
     },
 );
 
 export const destroy = api(
     { method: 'DELETE', path: '/items/:id', expose: true },
-    async ({ id }: { id: string }): Promise<Todo> => {
-        return await TodoService.delete(id);
+    async ({ id }: { id: string }): Promise<ItemResponse> => {
+        const item = await TodoService.delete(id);
+        return { item };
     },
 );
