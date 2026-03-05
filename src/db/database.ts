@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { existsSync, readFileSync } from 'fs';
+import 'dotenv/config';
 
 let dbUrl = process.env.DATABASE_URL;
 
