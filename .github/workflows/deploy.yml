@@ -86,7 +86,7 @@ jobs:
                   --zone=asia-southeast1-a \
                   --project=voltarocks-42-sandbox \
                   --tunnel-through-iap \
-                  --command="docker secret rm db_url || true && echo "${{ secrets.DATABASE_URL }}" || docker secret create db_url -"
+                  --command="sudo docker secret rm db_url || true && echo "${{ secrets.DATABASE_URL }}" || sudo docker secret create db_url -"
 
             - name: Deploy to Compute Engine via gcloud
               run: |
@@ -99,7 +99,6 @@ jobs:
                   --zone=asia-southeast1-a \
                   --project=voltarocks-42-sandbox \
                   --tunnel-through-iap \
-                  --command "sudo 
-                       GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
+                  --command "sudo GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
                        BACKUP_BUCKET='${{ secrets.BACKUP_BUCKET }}' \
                        docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
