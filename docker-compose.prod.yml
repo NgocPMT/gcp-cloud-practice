@@ -48,6 +48,8 @@ services:
                 - 'traefik.docker.network=traefik-public'
     db:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
+        ports:
+            - '127.0.0.1:5432:5432' # Expose only to localhost for tunneling
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -105,7 +107,7 @@ services:
     grafana:
         image: grafana/grafana:latest
         ports:
-            - '127.0.0.1:3001:3000'
+            - '127.0.0.1:3001:3000' # Expose only to localhost for tunneling
         environment:
             GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
         volumes:

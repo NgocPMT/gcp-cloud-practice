@@ -14,9 +14,7 @@ export const root = api(
 export const getAll = api(
     { method: 'GET', path: '/items', expose: true },
     async () => {
-        try {
-            return await TodoService.getAll();
-        } catch (err) {}
+        return await TodoService.getAll();
     },
 );
 
