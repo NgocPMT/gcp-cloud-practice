@@ -63,7 +63,7 @@ export default $config({
 
         // Write logs
         new gcp.projects.IAMMember('runtime-log-perm', {
-            project: gcp.config.project,
+            project: gcp.config.project!,
             role: 'roles/logging.logWriter',
             member: $interpolate`serviceAccount:${runtimeSA.email}`,
         });
@@ -86,13 +86,13 @@ export default $config({
 
         // Allow GitHub to talk to the VM and use the Runtime SA
         new gcp.projects.IAMMember('deployer-compute-perm', {
-            project: gcp.config.project,
+            project: gcp.config.project!,
             role: 'roles/compute.instanceAdmin.v1',
             member: $interpolate`serviceAccount:${deployerSA.email}`,
         });
 
         new gcp.projects.IAMMember('deployer-iap-perm', {
-            project: gcp.config.project,
+            project: gcp.config.project!,
             role: 'roles/iap.tunnelResourceAccessor',
             member: $interpolate`serviceAccount:${deployerSA.email}`,
         });
@@ -182,7 +182,9 @@ export default $config({
         });
 
         return {
-            vmExternalIp: vm.networkInterfaces[0].accessConfigs[0].natIp,
+            vmExternalIp: vm.networkInterfaces.apply(
+                (interfaces) => interfaces?.[0]?.accessConfigs?.[0]?.natIp,
+            ),
             backupBucket: backupBucket.name,
         };
     },

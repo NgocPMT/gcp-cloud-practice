@@ -28,11 +28,10 @@ services:
                     - node.role == manager
     api:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
+        secrets:
+            - db_url
         environment:
-            POSTGRES_HOST: db
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
+            DATABASE_URL_FILE: /run/secrets/db_url
             NODE_ENV: production
         networks:
             - todo-internal
@@ -45,7 +44,7 @@ services:
                 - 'traefik.http.routers.api.rule=Host(`ngocpmt-todo-app.duckdns.org`)'
                 - 'traefik.http.routers.api.entrypoints=websecure'
                 - 'traefik.http.routers.api.tls.certresolver=letsencrypt'
-                - 'traefik.http.services.api.loadbalancer.server.port=3000'
+                - 'traefik.http.services.api.loadbalancer.server.port=4000'
     db:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
         environment:
@@ -71,6 +70,9 @@ services:
         environment:
             WALG_GS_PREFIX: gs://${BACKUP_BUCKET}
             WALG_COMPRESSION_METHOD: brotli
+            PGHOST: db
+            PGUSER: ${POSTGRES_USER}
+            PGPASSWORD: ${POSTGRES_PASSWORD}
         volumes:
             - pgdata:/var/lib/postgresql/data
         networks:
@@ -122,4 +124,8 @@ networks:
     todo-internal:
         driver: overlay
     traefik-public:
+        external: true
+
+secrets:
+    db_url:
         external: true

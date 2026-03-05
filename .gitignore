@@ -1,4 +1,11 @@
 node_modules
+.env
 
 # sst
 .sst
+
+# encore
+encore.gen.go
+encore.gen.cue
+/.encore
+/encore.gen

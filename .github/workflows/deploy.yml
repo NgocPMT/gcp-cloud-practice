@@ -20,6 +20,17 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
+            - name: Download Encore CLI script
+              uses: sozo-design/curl@v1.0.2
+              with:
+                  args: --output install.sh -L https://encore.dev/install.sh
+
+            - name: Install Encore CLI
+              run: bash install.sh
+
+            - name: Authenticate with Encore
+              run: /home/runner/.encore/bin/encore auth login --auth-key=${{ secrets.ENCORE_AUTH_KEY }}
+
             - name: Authenticate to Google Cloud
               uses: google-github-actions/auth@v2
               with:
@@ -32,7 +43,8 @@ jobs:
 
             - name: Build and Push Docker image
               run: |
-                  docker build --provenance=false -t asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest .
+                  encore build docker todo-app
+                  docker tag todo-app asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
                   docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
 
             - name: Build and Push Postgres WAL-G image
@@ -68,6 +80,14 @@ jobs:
                   echo "Timed out waiting for Docker"
                   exit 1
 
+            - name: Create DATABASE_URL secret
+              run: |
+                  echo "${{ secrets.DATABASE_URL }}" | gcloud compute ssh $VM_NAME \
+                  --zone=asia-southeast1-a \
+                  --project=voltarocks-42-sandbox \
+                  --tunnel-through-iap \
+                  --command="docker secret rm db_url || true && echo "${{ secrets.DATABASE_URL }}" || docker secret create db_url -"
+
             - name: Deploy to Compute Engine via gcloud
               run: |
                   gcloud compute scp docker-compose.prod.yml prometheus.yml $VM_NAME:~ \
@@ -79,9 +99,7 @@ jobs:
                   --zone=asia-southeast1-a \
                   --project=voltarocks-42-sandbox \
                   --tunnel-through-iap \
-                  --command "sudo POSTGRES_USER='${{  secrets.POSTGRES_USER  }}' \
-                       POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
-                       POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
+                  --command "sudo 
                        GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
                        BACKUP_BUCKET='${{ secrets.BACKUP_BUCKET }}' \
                        docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
