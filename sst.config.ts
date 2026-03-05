@@ -176,7 +176,7 @@ export default $config({
 
                 # Create overlay network if it does not exist
                 if ! docker network ls --format '{{.Name}}' | grep -q "^traefik-public$"; then
-                docker network create -d overlay traefik-public
+                sudo docker network create --driver=overlay --opt com.docker.network.driver.mtu=1400 traefik-public
                 fi
             `,
         });
