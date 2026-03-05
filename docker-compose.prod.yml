@@ -44,7 +44,8 @@ services:
                 - 'traefik.http.routers.api.rule=Host(`ngocpmt-todo-app.duckdns.org`)'
                 - 'traefik.http.routers.api.entrypoints=websecure'
                 - 'traefik.http.routers.api.tls.certresolver=letsencrypt'
-                - 'traefik.http.services.api.loadbalancer.server.port=4000'
+                - 'traefik.http.services.api.loadbalancer.server.port=8080'
+                - 'traefik.docker.network=traefik-public'
     db:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
         environment:
