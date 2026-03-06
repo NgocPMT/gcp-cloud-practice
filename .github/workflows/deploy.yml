@@ -50,7 +50,7 @@ jobs:
                   exit-code: '1'
                   ignore-unfixed: true
                   severity: 'CRITICAL,HIGH'
-                  vuln-type: 'os,library' # Ignore Go files
+                  pkg-types: 'os,npm' # Ignore Go files
 
             - name: Push Docker image to registry
               run: |
@@ -112,12 +112,12 @@ jobs:
                       # Check state of the most recent task
                       STATE=\$(sudo docker service ps todo-app_api --format '{{.CurrentState}}' | head -n 1)
 
-                      if echo \"$STATE\" | grep -q 'Running'; then
+                      if echo \"$\STATE\" | grep -q 'Running'; then
                         echo 'Healthcheck Passed!'
                         exit 0
                       fi
 
-                      if echo \"$STATE\" | grep -q -E 'Failed|Rejected|Shutdown'; then
+                      if echo \"$\STATE\" | grep -q -E 'Failed|Rejected|Shutdown'; then
                         echo 'Service crash or failed to start'
                         exit 1
                       fi
