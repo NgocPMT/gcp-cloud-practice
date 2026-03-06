@@ -26,6 +26,15 @@ export const root = api(
     },
 );
 
+export const healthCheck = api(
+    { method: 'GET', path: '/health-check', expose: true },
+    async (): Promise<{ message: string }> => {
+        return {
+            message: 'Healthy',
+        };
+    },
+);
+
 export const getAll = api(
     { method: 'GET', path: '/items', expose: true },
     async (): Promise<ListResponse> => {

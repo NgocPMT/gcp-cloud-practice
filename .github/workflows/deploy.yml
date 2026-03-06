@@ -41,9 +41,21 @@ jobs:
               run: |
                   gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
 
-            - name: Build and Push Docker image
+            - name: Build Docker image
               run: |
                   /home/runner/.encore/bin/encore build docker todo-app
+                  docker tag todo-app local-todo-app:latest
+            - name: Scan Docker image for vulnerabilities
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: 'local-todo-app:latest'
+                  format: 'table'
+                  exit-code: '1'
+                  ignore-unfixed: true
+                  severity: 'CRITICAL,HIGH'
+
+            - name: Push Docker image to registry
+              run: |
                   docker tag todo-app asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
                   docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
 
@@ -65,21 +77,6 @@ jobs:
                   # Save it to the GitHub Environment so the next steps can use it
                   echo "VM_NAME=$DYNAMIC_NAME" >> $GITHUB_ENV
 
-            - name: Wait for Docker to be ready
-              run: |
-                  echo "Waiting for startup script to finish..."
-                  # This loop checks if docker is installed every 10 seconds, up to 10 times
-                  for i in {1..10}; do
-                    if gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap --command "which docker" > /dev/null 2>&1; then
-                      echo "Docker is ready!"
-                      exit 0
-                    fi
-                    echo "Docker not ready yet... sleeping 10s"
-                    sleep 10
-                  done
-                  echo "Timed out waiting for Docker"
-                  exit 1
-
             - name: Create DATABASE_URL secret
               run: |
                   echo "${{ secrets.DATABASE_URL }}" | gcloud compute ssh $VM_NAME \
@@ -89,6 +86,7 @@ jobs:
                   --command="sudo docker secret inspect db_url >/dev/null 2>&1 || echo "${{ secrets.DATABASE_URL }}" | sudo docker secret create db_url -"
 
             - name: Deploy to Compute Engine via gcloud
+              id: deploy
               run: |
                   gcloud compute scp docker-compose.prod.yml prometheus.yml $VM_NAME:~ \
                   --zone=asia-southeast1-a \
@@ -100,8 +98,41 @@ jobs:
                   --project=voltarocks-42-sandbox \
                   --tunnel-through-iap \
                   --command "sudo GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
-                       POSTGRES_PASSWORD='${{secrets.POSTGRES_PASSWORD}}' \
-                       POSTGRES_USER='${{secrets.POSTGRES_USER}}' \
-                       POSTGRES_DB='${{secrets.POSTGRES_DB}}' \
+                       POSTGRES_PASSWORD='${{  secrets.POSTGRES_PASSWORD  }}' \
+                       POSTGRES_USER='${{  secrets.POSTGRES_USER  }}' \
+                       POSTGRES_DB='${{  secrets.POSTGRES_DB  }}' \
                        BACKUP_BUCKET='${{ secrets.BACKUP_BUCKET }}' \
                        docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
+
+            - name: Post-deployment Healthcheck
+              run: |
+                  gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
+                  --command "
+                    echo 'Monitoring service stability...'
+                    # Polling for 2 minutes (12 * 10s)
+                    for i in {1..12}; do
+                      # Check state of the most recent task
+                      STATE=\$(sudo docker service ps todo-app_api --format '{{.CurrentState}}' | head -n 1)
+
+                      if echo \"$STATE\" | grep -q 'Running'; then
+                        echo 'Healthcheck Passed!'
+                        exit 0
+                      fi
+
+                      if echo \"$STATE\" | grep -q -E 'Failed|Rejected|Shutdown'; then
+                        echo 'Service crash or failed to start'
+                        exit 1
+                      fi
+                      sleep 10
+                    done
+                    echo 'Healthcheck timed out'
+                    exit 1
+                  "
+
+            - name: Rollback on Failure
+              # Rollback only when failure and deploy step is ran
+              if: failure() && steps.deploy.outcome != 'skipped'
+              run: |
+                  echo "Deployment failed! Reverting to previous stable version..."
+                  gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
+                  --command "sudo docker service rollback todo-app_api"
