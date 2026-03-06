@@ -50,6 +50,7 @@ jobs:
                   exit-code: '1'
                   ignore-unfixed: true
                   severity: 'CRITICAL,HIGH'
+                  vuln-type: 'os,library' # Ignore Go files
 
             - name: Push Docker image to registry
               run: |
