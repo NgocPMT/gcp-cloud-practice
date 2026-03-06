@@ -50,7 +50,13 @@ services:
                 - 'traefik.http.services.api.loadbalancer.server.port=8080'
                 - 'traefik.docker.network=traefik-public'
         healthcheck:
-            test: ['CMD', 'curl', '-f', 'http://localhost:8080/health-check']
+            test:
+                [
+                    'CMD',
+                    'curl',
+                    '-f',
+                    'https://ngocpmt-todo-app.duckdns.org/health-check',
+                ]
             interval: 10s
             timeout: 5s
             retries: 3
