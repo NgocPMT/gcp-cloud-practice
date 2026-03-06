@@ -40,7 +40,7 @@ jobs:
 
             - name: Build Docker image
               run: |
-                  /home/runner/.encore/bin/encore build docker todo-app
+                  /home/runner/.encore/bin/encore build docker --base=node:22-bookworm-slim todo-app
                   docker tag todo-app local-todo-app:latest
             - name: Scan Docker image for vulnerabilities
               uses: aquasecurity/trivy-action@master
