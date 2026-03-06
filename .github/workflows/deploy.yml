@@ -50,7 +50,11 @@ jobs:
                   exit-code: '1'
                   ignore-unfixed: true
                   severity: 'CRITICAL,HIGH'
-                  trivy-config: .trivyignore
+                  # Manually config skip dev dependencies since encore build will include them by default
+                  skip-dirs: |
+                      workspace/node_modules/@esbuild-kit
+                      workspace/node_modules/drizzle-kit
+                      workspace/node_modules/sst-linux-x64
 
             - name: Push Docker image to registry
               run: |
