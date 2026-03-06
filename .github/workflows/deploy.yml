@@ -28,9 +28,6 @@ jobs:
             - name: Install Encore CLI
               run: bash install.sh
 
-            - name: Authenticate with Encore
-              run: /home/runner/.encore/bin/encore auth login --auth-key=${{ secrets.ENCORE_AUTH_KEY }}
-
             - name: Authenticate to Google Cloud
               uses: google-github-actions/auth@v2
               with:
