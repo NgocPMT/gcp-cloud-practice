@@ -37,8 +37,8 @@ services:
             - traefik-public
         entrypoint: ['/bin/sh', '-c']
         command: |
-            export DATABASE_URL=$$(cat /run/secrets/db_url)
-            exec /home/runner/.encore/bin/encore run
+            export DATABASE_URL=$$(cat /run/secrets/db_url) &&
+            exec encore run
         deploy:
             update_config:
                 order: start-first
