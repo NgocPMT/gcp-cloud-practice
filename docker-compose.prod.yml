@@ -82,6 +82,10 @@ services:
             -c archive_mode=on
             -c archive_command='wal-g wal-push %p'
             -c restore_command='wal-g wal-fetch %f %p'
+        deploy:
+            replicas: 1
+            update_config:
+                order: stop-first
 
     backup:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest

@@ -111,23 +111,28 @@ jobs:
                   gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
                   --command "
                     echo 'Monitoring service stability...'
-                    # Polling for 2 minutes (12 * 10s)
                     for i in {1..12}; do
-                      # Check state of the most recent task
-                      STATE=\$(sudo docker service ps todo-app_api --format '{{.CurrentState}}' | head -n 1)
+                      STATE=\$(sudo docker service ps todo-app_api --filter desired-state=running --format '{{.CurrentState}}' | head -n 1)
+                      
+                      echo \"Attempt \$i: Current State is '\$STATE'\"
 
                       if echo \"\$STATE\" | grep -q 'Running'; then
                         echo 'Healthcheck Passed!'
                         exit 0
                       fi
 
-                      if echo \"\$STATE\" | grep -q -E 'Failed|Rejected|Shutdown'; then
-                        echo 'Service crash or failed to start'
+                      if echo \"\$STATE\" | grep -q -E 'Failed|Rejected'; then
+                        echo 'Service crash detected!'
+                        echo '--- CRASH LOGS ---'
+                        # Print the last 20 lines of the container logs so you can see the error
+                        sudo docker service logs --tail 20 todo-app_api
+                        echo '------------------'
                         exit 1
                       fi
+                      
                       sleep 10
                     done
-                    echo 'Healthcheck timed out'
+                    echo 'Healthcheck timed out after 2 minutes.'
                     exit 1
                   "
 
@@ -135,6 +140,24 @@ jobs:
               # Rollback only when failure and deploy step is ran
               if: failure() && steps.deploy.outcome != 'skipped'
               run: |
-                  echo "Deployment failed! Reverting to previous stable version..."
+                  echo "Deployment failed! Reverting entire stack to stable state..."
                   gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
-                  --command "sudo docker service rollback todo-app_api"
+                  --command "
+                    # Get a list of all services in the 'todo-app' stack
+                    SERVICES=\$(sudo docker stack services todo-app --format '{{.Name}}')
+
+                    # Loop through each service and trigger a rollback
+                    for SERVICE in \$SERVICES; do
+                      echo \"Rolling back \$SERVICE...\"
+                      sudo docker service rollback \$SERVICE
+                    done
+
+                    # Final check to see the state after rollback
+                    sudo docker stack ps todo-app
+                  "
+
+            - name: Clean up unused image/networks from previous versions
+              if: success()
+              run: |
+                  gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
+                  --command "sudo docker system prune -f"
