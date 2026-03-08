@@ -50,14 +50,15 @@ services:
             test:
                 [
                     'CMD',
-                    'curl',
-                    '-f',
-                    'https://ngocpmt-todo-app.duckdns.org/health-check',
+                    'node',
+                    '-e',
+                    "fetch('http://127.0.0.1:8080/health-check').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
                 ]
             interval: 10s
             timeout: 5s
             retries: 3
-            start_period: 20s
+            start_period: 30s
+
     db:
         image: asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
         ports:
