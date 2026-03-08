@@ -31,14 +31,11 @@ services:
         secrets:
             - db_url
         environment:
+            DATABASE_URL_FILE: /run/secrets/db_url
             NODE_ENV: production
         networks:
             - todo-internal
             - traefik-public
-        entrypoint: ['/bin/sh', '-c']
-        command: |
-            export DATABASE_URL=$$(cat /run/secrets/db_url) &&
-            exec encore run
         deploy:
             update_config:
                 order: start-first

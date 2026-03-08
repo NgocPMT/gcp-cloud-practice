@@ -1,11 +1,19 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { existsSync, readFileSync } from 'fs';
 import 'dotenv/config';
 
-const dbUrl = process.env.DATABASE_URL;
+let dbUrl = process.env.DATABASE_URL;
+
+if (!dbUrl && process.env.DATABASE_URL_FILE) {
+    const path = process.env.DATABASE_URL_FILE;
+    if (existsSync(path)) {
+        dbUrl = readFileSync(path, 'utf8').trim();
+    }
+}
 
 if (!dbUrl) {
-    throw new Error('Database URL is not configured');
+    throw new Error('DATABASE_URL not configured');
 }
 
 const pool = new Pool({
