@@ -122,12 +122,22 @@ See [SST documentation](https://docs.sst.dev/) for details.
 Deployment is automated via GitHub Actions and Docker Swarm:
 
 -   On push to `main`, the workflow:
-    1. Authenticates to GCP
-    2. Builds and pushes Docker images to Artifact Registry
-    3. Copies production compose and Prometheus config to VM
-    4. Deploys/updates the Docker Swarm stack (Traefik, API, DB, backup, monitoring)
+    1. Checks out code and installs Encore CLI
+    2. Authenticates to GCP using Workload Identity
+    3. Configures Docker for Artifact Registry
+    4. Builds the API Docker image with Encore CLI
+    5. Scans the image for vulnerabilities using Trivy
+    6. Pushes the API image to Artifact Registry
+    7. Builds and pushes the Postgres WAL-G backup image
+    8. Discovers the VM name dynamically by tag
+    9. Creates the `db_url` Docker secret on the VM
+    10. Copies production compose and Prometheus config to the VM
+    11. Deploys/updates the Docker Swarm stack (Traefik, API, DB, backup, monitoring) with registry auth and environment secrets
+    12. Runs a post-deployment healthcheck for the API service
+    13. If deployment fails, triggers rollback for all stack services
+    14. On success, cleans up unused Docker images and networks
 
-See `.github/workflows/deploy.yml` for details.
+See `.github/workflows/deploy.yml` for full details.
 
 ## Environment Variables
 
