@@ -59,9 +59,9 @@ jobs:
             workspace/node_modules/sst-linux-x64
 
       - name: Build Frontend Docker image
+        working-directory: ./frontend
         run: |
-          # Note: If Next.js needs NEXT_PUBLIC_API_URL at build time, pass it as a --build-arg
-          docker build -f Dockerfile.web -t todo-web .
+          docker build --build-arg NEXT_PUBLIC_API_URL=https://ngocpmt-todo-app.duckdns.org -t todo-web .
           docker tag todo-web local-todo-web:latest
 
       - name: Scan Frontend Docker image for vulnerabilities
