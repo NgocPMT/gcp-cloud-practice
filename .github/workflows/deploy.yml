@@ -1,163 +1,182 @@
 name: Deploy Todo API to GCP Swarm
 
 on:
-    push:
-        branches:
-            - main
-        paths-ignore:
-            - 'sst.config.ts'
-            - '.sst/**'
-            - 'README.md'
-            - '.gitignore'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "sst.config.ts"
+      - ".sst/**"
+      - "README.md"
+      - ".gitignore"
 
 jobs:
-    build-and-deploy:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Download Encore CLI script
-              uses: sozo-design/curl@v1.0.2
-              with:
-                  args: --output install.sh -L https://encore.dev/install.sh
+      - name: Download Encore CLI script
+        uses: sozo-design/curl@v1.0.2
+        with:
+          args: --output install.sh -L https://encore.dev/install.sh
 
-            - name: Install Encore CLI
-              run: bash install.sh
+      - name: Install Encore CLI
+        run: bash install.sh
 
-            - name: Authenticate to Google Cloud
-              uses: google-github-actions/auth@v2
-              with:
-                  workload_identity_provider: 'projects/985227244631/locations/global/workloadIdentityPools/github-actions-pool-v2/providers/github-provider'
-                  service_account: todo-github-deployer@voltarocks-42-sandbox.iam.gserviceaccount.com
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "projects/985227244631/locations/global/workloadIdentityPools/github-actions-pool-v2/providers/github-provider"
+          service_account: todo-github-deployer@voltarocks-42-sandbox.iam.gserviceaccount.com
 
-            - name: Configure Docker for Artifact Registry
-              run: |
-                  gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
 
-            - name: Build Docker image
-              run: |
-                  /home/runner/.encore/bin/encore build docker --base=node:22-bookworm-slim todo-app
-                  docker tag todo-app local-todo-app:latest
-            - name: Scan Docker image for vulnerabilities
-              uses: aquasecurity/trivy-action@master
-              with:
-                  image-ref: 'local-todo-app:latest'
-                  format: 'table'
-                  exit-code: '1'
-                  ignore-unfixed: true
-                  severity: 'CRITICAL'
-                  # Manually config skip dev dependencies since encore build will include them by default
-                  skip-dirs: |
-                      workspace/node_modules/@esbuild-kit
-                      workspace/node_modules/drizzle-kit
-                      workspace/node_modules/sst-linux-x64
+      - name: Build Backend Docker image
+        working-directory: ./backend
+        run: |
+          /home/runner/.encore/bin/encore build docker --base=node:22-bookworm-slim todo-app
+          docker tag todo-app local-todo-app:latest
 
-            - name: Push Docker image to registry
-              run: |
-                  docker tag todo-app asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
-                  docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
+      - name: Scan Backend Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "local-todo-app:latest"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL"
+          # Manually config skip dev dependencies since encore build will include them by default
+          skip-dirs: |
+            workspace/node_modules/@esbuild-kit
+            workspace/node_modules/drizzle-kit
+            workspace/node_modules/sst-linux-x64
 
-            - name: Build and Push Postgres WAL-G image
-              run: |
-                  docker build -t asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest ./postgres
-                  docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
+      - name: Build Frontend Docker image
+        run: |
+          # Note: If Next.js needs NEXT_PUBLIC_API_URL at build time, pass it as a --build-arg
+          docker build -f Dockerfile.web -t todo-web .
+          docker tag todo-web local-todo-web:latest
 
-            - name: Discover VM name
-              run: |
-                  # Search for the VM with the tag 'todo-iac-vm' and extract only its name
-                  DYNAMIC_NAME=$(gcloud compute instances list \
-                    --project=voltarocks-42-sandbox \
-                    --filter="tags.items=todo-iac-vm" \
-                    --format="value(name)" \
-                    --limit=1)
+      - name: Scan Frontend Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "local-todo-web:latest"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL"
 
-                  echo "Found VM: $DYNAMIC_NAME"
-                  # Save it to the GitHub Environment so the next steps can use it
-                  echo "VM_NAME=$DYNAMIC_NAME" >> $GITHUB_ENV
+      - name: Push Docker images to registry
+        run: |
+          docker tag todo-app asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
+          docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-app:latest
+          docker tag todo-web asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-web:latest
+          docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/todo-web:latest
 
-            - name: Create DATABASE_URL secret
-              run: |
-                  echo "${{ secrets.DATABASE_URL }}" | gcloud compute ssh $VM_NAME \
-                  --zone=asia-southeast1-a \
-                  --project=voltarocks-42-sandbox \
-                  --tunnel-through-iap \
-                  --command="sudo docker secret inspect db_url >/dev/null 2>&1 || echo "${{ secrets.DATABASE_URL }}" | sudo docker secret create db_url -"
+      - name: Build and Push Postgres WAL-G image
+        run: |
+          docker build -t asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest ./postgres
+          docker push asia-southeast1-docker.pkg.dev/voltarocks-42-sandbox/todo-repo/postgres-walg:latest
 
-            - name: Deploy to Compute Engine via gcloud
-              id: deploy
-              run: |
-                  gcloud compute scp docker-compose.prod.yml prometheus.yml $VM_NAME:~ \
-                  --zone=asia-southeast1-a \
-                  --project=voltarocks-42-sandbox \
-                  --tunnel-through-iap
+      - name: Discover VM name
+        run: |
+          # Search for the VM with the tag 'todo-iac-vm' and extract only its name
+          DYNAMIC_NAME=$(gcloud compute instances list \
+            --project=voltarocks-42-sandbox \
+            --filter="tags.items=todo-iac-vm" \
+            --format="value(name)" \
+            --limit=1)
 
-                  gcloud compute ssh $VM_NAME \
-                  --zone=asia-southeast1-a \
-                  --project=voltarocks-42-sandbox \
-                  --tunnel-through-iap \
-                  --command "sudo GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
-                       POSTGRES_PASSWORD='${{  secrets.POSTGRES_PASSWORD  }}' \
-                       POSTGRES_USER='${{  secrets.POSTGRES_USER  }}' \
-                       POSTGRES_DB='${{  secrets.POSTGRES_DB  }}' \
-                       BACKUP_BUCKET='${{ secrets.BACKUP_BUCKET }}' \
-                       docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
+          echo "Found VM: $DYNAMIC_NAME"
+          # Save it to the GitHub Environment so the next steps can use it
+          echo "VM_NAME=$DYNAMIC_NAME" >> $GITHUB_ENV
 
-            - name: Post-deployment Healthcheck
-              run: |
-                  gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
-                  --command "
-                    echo 'Monitoring service stability...'
-                    for i in {1..12}; do
-                      STATE=\$(sudo docker service ps todo-app_api --format '{{.CurrentState}}' | head -n 1)
+      - name: Create DATABASE_URL secret
+        run: |
+          echo "${{ secrets.DATABASE_URL }}" | gcloud compute ssh $VM_NAME \
+          --zone=asia-southeast1-a \
+          --project=voltarocks-42-sandbox \
+          --tunnel-through-iap \
+          --command="sudo docker secret inspect db_url >/dev/null 2>&1 || echo "${{ secrets.DATABASE_URL }}" | sudo docker secret create db_url -"
 
-                      echo \"Attempt \$i: Current State is '\$STATE'\"
+      - name: Deploy to Compute Engine via gcloud
+        id: deploy
+        run: |
+          gcloud compute scp docker-compose.prod.yml prometheus.yml $VM_NAME:~ \
+          --zone=asia-southeast1-a \
+          --project=voltarocks-42-sandbox \
+          --tunnel-through-iap
 
-                      if echo \"\$STATE\" | grep -q 'Running'; then
-                        echo 'Healthcheck Passed!'
-                        exit 0
-                      fi
+          gcloud compute ssh $VM_NAME \
+          --zone=asia-southeast1-a \
+          --project=voltarocks-42-sandbox \
+          --tunnel-through-iap \
+          --command "sudo GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
+               POSTGRES_PASSWORD='${{  secrets.POSTGRES_PASSWORD  }}' \
+               POSTGRES_USER='${{  secrets.POSTGRES_USER  }}' \
+               POSTGRES_DB='${{  secrets.POSTGRES_DB  }}' \
+               BACKUP_BUCKET='${{ secrets.BACKUP_BUCKET }}' \
+               docker stack deploy --with-registry-auth -c docker-compose.prod.yml todo-app"
 
-                      if echo \"\$STATE\" | grep -q -E 'Failed|Rejected'; then
-                        echo 'Service crash detected!'
-                        echo '--- CRASH LOGS ---'
-                        # Print the last 20 lines of the container logs so you can see the error
-                        sudo docker service logs --tail 20 todo-app_api
-                        echo '------------------'
-                        exit 1
-                      fi
+      - name: Post-deployment Healthcheck
+        run: |
+          gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
+          --command "
+            echo 'Monitoring service stability...'
+            for i in {1..12}; do
+              STATE=\$(sudo docker service ps todo-app_api --format '{{.CurrentState}}' | head -n 1)
 
-                      sleep 10
-                    done
-                    echo 'Healthcheck timed out after 2 minutes.'
-                    exit 1
-                  "
+              echo \"Attempt \$i: Current State is '\$STATE'\"
 
-            - name: Rollback on Failure
-              # Rollback only when failure and deploy step is ran
-              if: failure() && steps.deploy.outcome != 'skipped'
-              run: |
-                  echo "Deployment failed! Reverting entire stack to stable state..."
-                  gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
-                  --command "
-                    # Get a list of all services in the 'todo-app' stack
-                    SERVICES=\$(sudo docker stack services todo-app --format '{{.Name}}')
+              if echo \"\$STATE\" | grep -q 'Running'; then
+                echo 'Healthcheck Passed!'
+                exit 0
+              fi
 
-                    # Loop through each service and trigger a rollback
-                    for SERVICE in \$SERVICES; do
-                      echo \"Rolling back \$SERVICE...\"
-                      sudo docker service rollback \$SERVICE
-                    done
+              if echo \"\$STATE\" | grep -q -E 'Failed|Rejected'; then
+                echo 'Service crash detected!'
+                echo '--- CRASH LOGS ---'
+                # Print the last 20 lines of the container logs so you can see the error
+                sudo docker service logs --tail 20 todo-app_api
+                echo '------------------'
+                exit 1
+              fi
 
-                    # Final check to see the state after rollback
-                    sudo docker stack ps todo-app
-                  "
+              sleep 10
+            done
+            echo 'Healthcheck timed out after 2 minutes.'
+            exit 1
+          "
 
-            - name: Clean up unused image/networks from previous versions
-              if: success()
-              run: |
-                  gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
-                  --command "sudo docker system prune -f"
+      - name: Rollback on Failure
+        # Rollback only when failure and deploy step is ran
+        if: failure() && steps.deploy.outcome != 'skipped'
+        run: |
+          echo "Deployment failed! Reverting entire stack to stable state..."
+          gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
+          --command "
+            # Get a list of all services in the 'todo-app' stack
+            SERVICES=\$(sudo docker stack services todo-app --format '{{.Name}}')
+
+            # Loop through each service and trigger a rollback
+            for SERVICE in \$SERVICES; do
+              echo \"Rolling back \$SERVICE...\"
+              sudo docker service rollback \$SERVICE
+            done
+
+            # Final check to see the state after rollback
+            sudo docker stack ps todo-app
+          "
+
+      - name: Clean up unused image/networks from previous versions
+        if: success()
+        run: |
+          gcloud compute ssh $VM_NAME --zone=asia-southeast1-a --tunnel-through-iap \
+          --command "sudo docker system prune -f"
