@@ -9,5 +9,8 @@
   "devDependencies": {
     "@types/node": "^25.3.5",
     "drizzle-kit": "^0.31.9"
+  },
+  "dependencies": {
+    "encore.dev": "^1.54.2"
   }
 }

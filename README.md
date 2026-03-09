@@ -1,102 +1,192 @@
-# Todo App – GCP, Docker, SST, Encore, Drizzle
+# Todo App – Docker, SST, Encore, Next.js, Drizzle
 
-This project is a modern TypeScript-based Todo API deployed on Google Cloud Platform (GCP) using Docker, Docker Swarm, SST (IaC), and Traefik. It features a RESTful API built with Encore and Drizzle ORM, PostgreSQL for persistence, and Prometheus for monitoring. Infrastructure and deployment are automated via SST and GitHub Actions.
+A modern full-stack Todo application featuring a TypeScript backend API built with Encore and Drizzle ORM, a Next.js frontend, PostgreSQL for data persistence, and automated infrastructure management via SST for GCP deployment.
 
 ## Features
 
--   **Todo List API**: RESTful API for managing todo items (add, update, delete, list) with Encore and Drizzle ORM
--   **Persistence**: PostgreSQL database
--   **Monitoring**: Prometheus metrics endpoint
--   **Reverse Proxy**: Traefik for HTTPS, routing, and Let's Encrypt
--   **Dockerized**: Local and production-ready Docker Compose setups
--   **Docker Swarm**: Orchestration on GCP Compute Engine VM
--   **IaC with SST**: Infrastructure managed via SST (TypeScript)
--   **CI/CD**: Automated build, push, and deploy with GitHub Actions
+- **Todo API**: RESTful API (GET /items, POST /items, PUT /items/:id, DELETE /items/:id)
+- **Next.js Frontend**: Modern React UI with todo management capabilities
+- **Backend**: Encore framework with Drizzle ORM for type-safe database operations
+- **Database**: PostgreSQL with automatic migrations via Drizzle Kit
+- **Monitoring**: Prometheus metrics endpoint
+- **Reverse Proxy**: Traefik for local routing and production HTTPS
+- **Containerized**: Docker Compose for local development and production deployments
+- **IaC with SST**: Infrastructure as Code for GCP (Artifact Registry, Compute Engine, Cloud Storage)
+- **Health Checks**: Built-in API health check endpoint
 
 ## Tech Stack
 
--   **API**: TypeScript, Encore, Drizzle ORM
--   **Database**: PostgreSQL
--   **Containerization**: Docker, Docker Compose, Docker Swarm
--   **IaC**: SST (TypeScript)
--   **Monitoring**: Prometheus, Grafana
--   **Reverse Proxy**: Traefik
--   **CI/CD**: GitHub Actions
--   **Cloud**: GCP Artifact Registry, Compute Engine
-
-src/
-docker-compose.yml
-docker-compose.prod.yml
-sst.config.ts # SST infrastructure config
-tsconfig.json
+- **Frontend**: Next.js 16, React 19, Tailwind CSS, TypeScript
+- **Backend**: Encore (TypeScript), Drizzle ORM, PostgreSQL
+- **Containerization**: Docker, Docker Compose
+- **Infrastructure**: SST (Google Cloud), Traefik
+- **Monitoring**: Prometheus
+- **Package Manager**: Bun
 
 ## Project Structure
 
 ```
-.github/workflows/deploy.yml      # CI/CD pipeline
-docker-compose.yml                # Local dev stack (Traefik, API, DB, monitoring)
-docker-compose.prod.yml           # Production stack (Swarm, Traefik, API, DB, backup, monitoring)
-sst.config.ts                     # SST infrastructure config (GCP, VM, Artifact Registry, firewall)
-prometheus.yml                    # Prometheus scrape config
-src/
-  db/
-    database.ts                   # Drizzle ORM DB connection
-    drizzle.config.ts             # Drizzle migration config
-    schema.ts                     # Todos table schema
-    migrations/                   # SQL migrations
-  todo/
-    encore.service.ts             # Encore service definition
-    todo.api.ts                   # Encore API endpoints
-    todo.repo.ts                  # Data access (Drizzle)
-    todo.service.ts               # Business logic
-  utils/                          # (Reserved for helpers)
-tests/
-  placeholder.test.ts             # Vitest placeholder
-Dockerfile                        # (if present)
-package.json                      # Bun/Node dependencies
-tsconfig.json                     # TypeScript config
-sst-env.d.ts                      # SST env typings
-encore.app                        # Encore config
+.
+├── backend/                       # Encore API service
+│   ├── src/
+│   │   ├── db/
+│   │   │   ├── database.ts       # Drizzle ORM connection
+│   │   │   ├── schema.ts         # Todos table schema
+│   │   │   └── migrations/       # Auto-generated SQL migrations
+│   │   └── todo/
+│   │       ├── todo.api.ts       # Encore API endpoints
+│   │       ├── todo.service.ts   # Business logic
+│   │       └── todo.repo.ts      # Data access layer (repository)
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── encore.app                # Encore service config
+│
+├── frontend/                      # Next.js web app
+│   ├── app/
+│   │   ├── layout.tsx            # Root layout
+│   │   ├── page.tsx              # Home page with TodoClient
+│   │   └── globals.css           # Global styles
+│   ├── components/
+│   │   └── TodoClient.tsx        # Todo list UI component
+│   ├── lib/
+│   │   ├── client.ts             # Generated Encore API client
+│   │   ├── encore.ts             # Encore client initialization
+│   │   └── utils.ts              # Utility functions
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── next.config.ts
+│
+├── postgres/                      # PostgreSQL Docker setup
+│   ├── Dockerfile                # Custom Postgres image
+│   ├── docker-entrypoint-wrapper.sh
+│   └── wal-g-cron.sh            # WAL-G backup cron job
+│
+├── docker-compose.yml             # Local development stack
+├── docker-compose.prod.yml        # Production stack (Swarm)
+├── drizzle.config.ts              # Drizzle Kit migration config
+├── sst.config.ts                  # SST infrastructure as code (GCP)
+├── prometheus.yml                 # Prometheus scrape config
+├── package.json                   # Monorepo root
+└── sst-env.d.ts                   # SST environment type definitions
 ```
 
 ## Local Development
 
 ### Prerequisites
 
--   Docker & Docker Compose
--   Bun (package manager)
--   Encore CLI (for local development)
+- **Docker & Docker Compose** - For containerized local development
+- **Bun** - Fast JavaScript runtime and package manager
+- **Node.js** (optional) - Needed only if not using Bun
+- **Encore CLI** (optional) - For running backend standalone
 
-### Running Locally
+### Quick Start with Docker Compose
 
-1. **With Docker Compose (recommended):**
+1. **Start the full stack:**
 
 ```bash
 docker-compose up -d
 ```
 
--   API runs on [http://localhost:80](http://localhost:80)
--   Traefik dashboard: [http://localhost:8080](http://localhost:8080)
--   PostgreSQL DB, Prometheus, and Grafana included
+This starts:
 
-2. **Directly with Encore (for development):**
+- **API** at `http://api.localhost` (routed via Traefik)
+- **Frontend** at `http://localhost:3000`
+- **Traefik Dashboard** at `http://localhost:8080`
+- **PostgreSQL** at `localhost:5432`
+
+2. **View logs:**
 
 ```bash
-encore run
+docker-compose logs -f api      # Backend logs
+docker-compose logs -f web      # Frontend logs
 ```
 
--   API runs on [http://localhost:4000](http://localhost:4000)
--   Requires local PostgreSQL (see `.env` for config)
+3. **Stop the stack:**
+
+```bash
+docker-compose down
+```
+
+### Running Backend Standalone
+
+For backend-only development with hot-reload:
+
+```bash
+cd backend
+bun install      # Install dependencies
+encore run       # Starts at http://localhost:4000
+```
+
+Requires local PostgreSQL or set `DATABASE_URL` environment variable.
+
+### Running Frontend Standalone
+
+```bash
+cd frontend
+bun install
+bun run dev      # Starts at http://localhost:3000
+```
+
+#### API Endpoints
+
+The backend provides these endpoints:
+
+| Method | Path            | Description       |
+| ------ | --------------- | ----------------- |
+| GET    | `/`             | Welcome message   |
+| GET    | `/health-check` | Health check      |
+| GET    | `/items`        | List all todos    |
+| POST   | `/items`        | Create a new todo |
+| PUT    | `/items/:id`    | Update a todo     |
+| DELETE | `/items/:id`    | Delete a todo     |
+
+#### Example Requests
+
+```bash
+# Get all todos
+curl http://api.localhost/items
+
+# Create a new todo
+curl -X POST http://api.localhost/items \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Learn Docker"}'
+
+# Update a todo (mark as done)
+curl -X PUT http://api.localhost/items/78c7ffab-ff9f-492b-8d52-69ac1fac2fc2 \
+  -H "Content-Type: application/json" \
+  -d '{"isDone":true}'
+
+# Delete a todo
+curl -X DELETE http://api.localhost/items/78c7ffab-ff9f-492b-8d52-69ac1fac2fc2
+```
+
+## Database Migrations
+
+Migrations are managed with **Drizzle Kit**. When you modify `backend/src/db/schema.ts`:
+
+```bash
+# Generate a new migration
+bunx drizzle-kit generate
+
+# Apply migrations to database
+bunx drizzle-kit push
+
+# Drop and recreate database (dev only)
+bunx drizzle-kit drop
+```
+
+The Docker Compose setup automatically runs migrations on startup via `docker-compose.yml`.
 
 ## Infrastructure as Code (IaC) with SST
 
-This project uses [SST](https://sst.dev/) to provision and manage GCP infrastructure. The `sst.config.ts` file defines:
+This project uses **[SST](https://sst.dev/)** to provision and manage Google Cloud Platform (GCP) infrastructure. The `sst.config.ts` file defines:
 
--   GCP project, region, and zone
--   Artifact Registry for Docker images
--   Backup bucket for Postgres WAL-G
--   Service accounts and IAM roles
--   Compute Engine VM (Docker, Swarm, firewall, startup script)
+- **GCP Configuration**: Project setup in `asia-southeast1` region
+- **Artifact Registry**: Docker image repository for storing container images
+- **Storage Bucket**: Cloud Storage for PostgreSQL WAL-G backups with 30-day auto-delete
+- **Service Accounts**: Runtime SA for VM and GitHub Actions deployer SA
+- **Compute Engine VM**: For running Docker Swarm with automated deployment and monitoring
+- **Firewall Rules**: HTTP(80), HTTPS(443), SSH(22), and Prometheus metrics access
 
 To deploy or update infrastructure:
 
@@ -104,47 +194,77 @@ To deploy or update infrastructure:
 sst deploy
 ```
 
-See [SST documentation](https://docs.sst.dev/) for details.
+See [SST documentation](https://docs.sst.dev/) for more details.
 
-## Traefik Reverse Proxy
+## Production Deployment
 
--   Traefik handles HTTPS, routing, and Let's Encrypt certificates
--   In production, Traefik is deployed as a Swarm service and configured via labels in `docker-compose.prod.yml`
--   Example domain: `ngocpmt-todo-app.duckdns.org` (see compose labels)
+### Docker Swarm Stack
 
-## Monitoring
+The production stack (`docker-compose.prod.yml`) includes:
 
--   Prometheus is configured via `prometheus.yml` for metrics scraping
--   Grafana is included for dashboarding (see port 3001)
+- **Traefik**: Reverse proxy with automatic HTTPS via Let's Encrypt
+- **API**: Encore backend service with health checks
+- **PostgreSQL**: Database with WAL-G backup to GCS
+- **Prometheus & Grafana**: Monitoring and metrics visualization
 
-## Deployment Workflow (GCP)
+### Deployment via GitHub Actions
 
-Deployment is automated via GitHub Actions and Docker Swarm:
+Automated CI/CD pipeline (`.github/workflows/deploy.yml`):
 
--   On push to `main`, the workflow:
-    1. Checks out code and installs Encore CLI
-    2. Authenticates to GCP using Workload Identity
-    3. Configures Docker for Artifact Registry
-    4. Builds the API Docker image with Encore CLI
-    5. Scans the image for vulnerabilities using Trivy
-    6. Pushes the API image to Artifact Registry
-    7. Builds and pushes the Postgres WAL-G backup image
-    8. Discovers the VM name dynamically by tag
-    9. Creates the `db_url` Docker secret on the VM
-    10. Copies production compose and Prometheus config to the VM
-    11. Deploys/updates the Docker Swarm stack (Traefik, API, DB, backup, monitoring) with registry auth and environment secrets
-    12. Runs a post-deployment healthcheck for the API service
-    13. If deployment fails, triggers rollback for all stack services
-    14. On success, cleans up unused Docker images and networks
+1. Builds and tests the Docker images
+2. Scans images for vulnerabilities (Trivy)
+3. Pushes images to GCP Artifact Registry
+4. Deploys to Compute Engine VM via Docker Swarm
+5. Runs health checks post-deployment
+6. Automatic rollback on failures
 
-See `.github/workflows/deploy.yml` for full details.
+## Frontend
+
+The Next.js frontend (`frontend/`) includes:
+
+- **TodoClient Component**: Full-featured todo list UI with add, toggle, and delete functionality
+- **Tailwind CSS**: Utility-first CSS styling
+- **Encore Client Integration**: Auto-generated API client for type-safe backend communication
+- **Modern React 19**: Latest React features and hooks
+
+### Key Components
+
+- **TodoClient.tsx**: Main component handling todo CRUD operations
+- **page.tsx**: Home page displaying the todo list
+- **lib/encore.ts**: Encore client initialization with environment-aware URL
+
+## Monitoring & Observability
+
+- **Prometheus**: Scrapes metrics from API at `/metrics`
+- **Grafana**: Dashboards for monitoring (port 3001 in compose)
+- **Traefik Dashboard**: Real-time request routing visualization (port 8080)
+
+## Development Workflow
+
+1. **Make changes** to backend or frontend code
+2. **Docker hot-reloads** automatically with volume mounts
+3. **Test locally** at `http://api.localhost` and `http://localhost:3000`
+4. **Run migrations** with Drizzle Kit when schema changes
+5. **Commit and push** to trigger GitHub Actions deployment
 
 ## Environment Variables
 
--   `DATABASE_URL` or `DATABASE_URL_FILE`: PostgreSQL connection string (used by Drizzle and API)
--   `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`: PostgreSQL container config
--   `GRAFANA_PASSWORD`: Grafana admin password (prod)
--   `BACKUP_BUCKET`: GCS bucket for WAL-G backups (prod)
+### Development (docker-compose.yml)
+
+```env
+POSTGRES_HOST=db
+POSTGRES_USER=root
+POSTGRES_PASSWORD=secret
+POSTGRES_DB=todos
+DATABASE_URL=postgresql://root:secret@db:5432/todos
+NEXT_PUBLIC_API_URL=http://api.localhost
+```
+
+### Production (docker-compose.prod.yml)
+
+- `DATABASE_URL`: PostgreSQL connection (via Docker secret)
+- `BACKUP_BUCKET`: GCS bucket for WAL-G backups
+- `DOMAIN_NAME`: For Traefik HTTPS routing
 
 ## License
 
@@ -154,13 +274,15 @@ MIT
 
 **Practice Focus:**
 
--   TypeScript, Bun, Encore, Drizzle ORM
--   GCP Artifact Registry, Compute Engine
--   Docker image automation & Swarm orchestration
--   Traefik reverse proxy & HTTPS
--   GitHub Actions CI/CD
--   Infrastructure as Code (SST)
--   Monitoring with Prometheus & Grafana
+- Full-stack TypeScript development
+- Encore framework & Drizzle ORM
+- Next.js React applications
+- Docker Compose & Docker Swarm
+- GCP infrastructure with SST
+- GitHub Actions CI/CD pipelines
+- Traefik reverse proxy & HTTPS
+- Infrastructure as Code (SST)
+- Monitoring with Prometheus & Grafana
 
 ---
 
