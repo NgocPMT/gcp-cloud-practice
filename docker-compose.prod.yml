@@ -93,6 +93,7 @@ services:
             PGHOST: db
             PGUSER: ${POSTGRES_USER}
             PGPASSWORD: ${POSTGRES_PASSWORD}
+            PGDATABASE: ${POSTGRES_DB}
         volumes:
             - pgdata:/var/lib/postgresql/data
         networks:
