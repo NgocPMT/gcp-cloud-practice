@@ -1,0 +1,7 @@
+{
+  "metrics": {
+    "type": "prometheus",
+    "collection_interval": 10,
+    "remote_write_url": "http://prometheus:9090/api/v1/write"
+  }
+}

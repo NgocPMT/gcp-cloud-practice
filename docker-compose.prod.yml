@@ -136,6 +136,11 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    ports:
+      - "127.0.0.1:9090:9090" # Expose only to localhost for tunneling
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prom_data:/prometheus

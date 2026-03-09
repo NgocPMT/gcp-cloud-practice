@@ -41,7 +41,7 @@ jobs:
       - name: Build Backend Docker image
         working-directory: ./backend
         run: |
-          /home/runner/.encore/bin/encore build docker --base=node:22-bookworm-slim todo-app
+          /home/runner/.encore/bin/encore build docker --config=$GITHUB_WORKSPACE/infra-config.json --base=node:22-bookworm-slim todo-app
           docker tag todo-app local-todo-app:latest
 
       - name: Scan Backend Docker image for vulnerabilities
