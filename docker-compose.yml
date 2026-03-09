@@ -1,67 +1,98 @@
 services:
-    traefik:
-        image: traefik:v3.6
-        command:
-            - '--providers.docker=true'
-            - '--providers.docker.exposedByDefault=false'
-            - '--entrypoints.web.address=:80'
-            - '--api.dashboard=true'
-            - '--api.insecure=true'
-        ports:
-            - '80:80'
-            - '8080:8080'
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock:ro
-    api:
-        image: oven/bun:1-alpine
-        command: sh -c "bun install && bun run dev"
-        working_dir: /app
-        volumes:
-            - ./:/app
-            - /app/node_modules # Protects the container's dependencies from the host machine
-        environment:
-            POSTGRES_HOST: db
-            POSTGRES_USER: root
-            POSTGRES_PASSWORD: secret
-            POSTGRES_DB: todos
-        labels:
-            - 'traefik.enable=true'
-            - 'traefik.http.routers.api.rule=PathPrefix(`/`)'
-            - 'traefik.http.services.api.loadbalancer.server.port=3000'
+  traefik:
+    image: traefik:v3.6
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api.dev
+    command:
+      [
+        "bash",
+        "-c",
+        "bun install --frozen-lockfile && bunx drizzle-kit push && cd backend && encore run --listen 0.0.0.0 --port 4000",
+      ]
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: todos
+      DATABASE_URL: "postgresql://root:secret@db:5432/todos"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
+      - "traefik.http.services.api.loadbalancer.server.port=4000"
+    depends_on:
+      db:
+        condition: service_healthy
 
-    db:
-        image: postgres:15-alpine
-        ports:
-            - 5432:5432
-        environment:
-            POSTGRES_USER: root
-            POSTGRES_PASSWORD: secret
-            POSTGRES_DB: todos
-        volumes:
-            - pgdata:/var/lib/postgresql/data
+  web:
+    image: oven/bun:1-slim
+    command: sh -c "bun install --frozen-lockfile && cd frontend && bun run dev"
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/frontend/node_modules
+      - /app/frontend/.next
+    environment:
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://api.localhost
+      INTERNAL_API_URL: http://api:4000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`localhost`)"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
 
-    prometheus:
-        image: prom/prometheus:latest
-        ports:
-            - '9090:9090'
-        volumes:
-            - ./prometheus.yml:/etc/prometheus/prometheus.yml
-            - prom_data:/prometheus
-        depends_on:
-            - api
+  db:
+    image: postgres:15-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: todos
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d todos"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prom_data:/prometheus
+    depends_on:
+      - api
 
-    grafana:
-        image: grafana/grafana:latest
-        ports:
-            - '3001:3000'
-        environment:
-            - GF_SECURITY_ADMIN_PASSWORD=admin
-        volumes:
-            - grafana_data:/var/lib/grafana
-        depends_on:
-            - prometheus
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
 
 volumes:
-    pgdata:
-    prom_data:
-    grafana_data:
+  pgdata:
+  prom_data:
+  grafana_data:

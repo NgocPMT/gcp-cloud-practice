@@ -1,6 +1,6 @@
 {
-  "id": "b0ac83e3-a1a4-4d8a-9760-cb78156cf98e",
-  "prevId": "7c57dcea-cdf8-49d8-8314-296797dd98e7",
+  "id": "47685e03-2219-44f7-93aa-c5a4d399914b",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -21,15 +21,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "isDone": {
-          "name": "isDone",
+        "is_done": {
+          "name": "is_done",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
