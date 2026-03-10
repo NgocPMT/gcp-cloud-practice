@@ -1,14 +1,22 @@
-name: Deploy Todo API to GCP Swarm
+name: Deploy Full-stack Todo App to GCP Swarm
 
 on:
   push:
     branches:
       - main
-    paths-ignore:
-      - "sst.config.ts"
-      - ".sst/**"
-      - "README.md"
-      - ".gitignore"
+    paths:
+      # Application
+      - "backend/**"
+      - "frontend/**"
+      - "postgres/**"
+
+      # Workflow
+      - ".github/workflows/deploy.yml"
+
+      # Infra
+      - "docker-compose.prod.yml"
+      - "package.json"
+      - "bun.lock"
 
 jobs:
   build-and-deploy:
