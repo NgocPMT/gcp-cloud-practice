@@ -126,9 +126,8 @@ This starts:
 - **API** at `http://api.localhost` (routed via Traefik on port 80)
 - **Frontend** at `http://localhost` (routed via Traefik on port 80)
 - **Traefik Dashboard** at `http://localhost:8080`
-- **PostgreSQL** at `localhost:5432`
-- **Prometheus** at `http://localhost:9090`
-- **Grafana** at `http://localhost:3001` (admin/admin)
+- **PostgreSQL** at `http://localhost:5432`
+- **Encore Development Dashboard** at `http://localhost:9400`
 
 2. **View logs:**
 
